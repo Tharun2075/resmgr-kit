@@ -1,0 +1,21 @@
+# Emergency-stop latch: writing "1" trips it, a read returns the state, and
+# clients register with ARM_NOTIFY to get a pulse when it trips.
+name: estop
+path: /dev/estop0
+description: Emergency-stop latch with trip notification
+state:
+  - {name: tripped, type: int32, min: 0, max: 1, init: 0}
+  - {name: trips, type: uint32, init: 0}
+read:
+  fields: [tripped, trips]
+write:
+  field: tripped
+  out_of_range: reject
+devctls:
+  - {name: ARM_NOTIFY, code: 1, op: notify}
+  - {name: GET_STATE, code: 2, op: get, field: tripped}
+  - {name: RESET, code: 3, op: set, field: tripped}
+notify:
+  field: tripped
+  equals: 1
+  count_field: trips

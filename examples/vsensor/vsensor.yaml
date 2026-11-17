@@ -1,0 +1,25 @@
+# Simulated sensor: a read returns the latest sample; SET_RATE changes the
+# sampling rate (clamped to 1..1000 Hz); a pulse timer produces the samples.
+name: vsensor
+path: /dev/vsensor0
+description: Simulated sensor with an adjustable sample rate
+buffer_size: 256
+threads:
+  lo_water: 2
+  hi_water: 4
+  maximum: 8
+state:
+  - {name: sample, type: int32, min: -1000, max: 1000, init: 0}
+  - {name: rate_hz, type: uint32, min: 1, max: 1000, init: 10, unit: Hz}
+  - {name: count, type: uint32, init: 0}
+read:
+  fields: [sample, rate_hz, count]
+devctls:
+  - {name: SET_RATE, code: 1, op: set, field: rate_hz, out_of_range: clamp}
+  - {name: GET_RATE, code: 2, op: get, field: rate_hz}
+  - {name: GET_SAMPLE, code: 3, op: get, field: sample}
+timer:
+  rate_field: rate_hz
+  actions:
+    - {op: triangle, field: sample, step: 50, amplitude: 1000}
+    - {op: inc, field: count}
