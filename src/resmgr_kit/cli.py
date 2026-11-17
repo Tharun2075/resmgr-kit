@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     t = sub.add_parser("test", help="gen, build with qcc, deploy to the target and run the live tests")
     t.add_argument("spec")
     t.add_argument("-o", "--outdir", help="output folder (default: build/<name>)")
+    t.add_argument("-c", "--config", help="extra settings file (TOML) read after the user config")
 
     args = ap.parse_args(argv)
     try:
@@ -30,7 +31,7 @@ def main(argv: list[str] | None = None) -> int:
             for p in render.write(spec, out, Path(args.spec).name):
                 print(p)
             return 0
-        return runner.test(args.spec, args.outdir)
+        return runner.test(args.spec, args.outdir, args.config)
     except specmod.SpecError as e:
         print(f"resmgr-kit: {args.spec}: {e}", file=sys.stderr)
         return 2

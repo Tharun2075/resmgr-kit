@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import jinja2
@@ -64,7 +65,8 @@ def context(spec: dict, spec_file: str) -> dict:
         "path": spec["path"],
         "description": spec["description"],
         "buffer_size": spec["buffer_size"],
-        "spec_file": spec_file,
+        # Only safe characters reach the comments in C, make and Python files.
+        "spec_file": re.sub(r"[^A-Za-z0-9._-]", "_", spec_file),
         "state": spec["state"],
         "fields": spec["fields"],
         "read": spec["read"],

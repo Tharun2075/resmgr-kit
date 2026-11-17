@@ -1,9 +1,10 @@
 """`resmgr-kit test`: build with qcc, deploy over ssh, run the live tests, clean up.
 
-Settings come from, highest first: environment variables, ./resmgr-kit.local.toml,
-~/.config/resmgr-kit/config.toml, then the defaults below.
+Settings come from, highest first: environment variables, the file given with
+--config, ~/.config/resmgr-kit/config.toml, then the defaults below. A config file
+in the current folder is never read on its own, because its commands run in a shell.
 
-  build_command  RESMGR_KIT_BUILD   shell command, {dir} is the output folder
+  build_command  RESMGR_KIT_BUILD   shell command, {dir} is the shell-quoted output folder
   target         RESMGR_KIT_TARGET  user@host of the QNX target
   port           RESMGR_KIT_PORT    ssh port
   ssh_key        RESMGR_KIT_SSH_KEY private key file (optional)
@@ -38,10 +39,12 @@ class RunError(Exception):
     pass
 
 
-def load_config() -> dict:
+def load_config(extra: str | None = None) -> dict:
     cfg = dict(DEFAULTS)
-    for path in (Path.home() / ".config/resmgr-kit/config.toml", Path("resmgr-kit.local.toml")):
-        if path.is_file():
+    if extra and not Path(extra).is_file():
+        raise RunError(f"config file not found: {extra}")
+    for path in (Path.home() / ".config/resmgr-kit/config.toml", Path(extra) if extra else None):
+        if path and path.is_file():
             with path.open("rb") as fh:
                 cfg.update({k: v for k, v in tomllib.load(fh).items() if k in DEFAULTS})
     for key in DEFAULTS:
@@ -106,8 +109,8 @@ class Target:
                  stdin=local.read_bytes(), timeout=60)
 
 
-def test(spec_path: str, outdir: str | None = None) -> int:
-    cfg = load_config()
+def test(spec_path: str, outdir: str | None = None, config: str | None = None) -> int:
+    cfg = load_config(config)
     spec = specmod.load(spec_path)
     name, path = spec["name"], spec["path"]
     out = Path(outdir or Path("build") / name).resolve()
@@ -116,7 +119,7 @@ def test(spec_path: str, outdir: str | None = None) -> int:
     render.write(spec, out, Path(spec_path).name)
 
     step("build")
-    res = subprocess.run(cfg["build_command"].format(dir=out), shell=True,
+    res = subprocess.run(cfg["build_command"].format(dir=shlex.quote(str(out))), shell=True,
                          capture_output=True, text=True, timeout=600)
     if res.returncode != 0:
         print(_tail(res.stdout + res.stderr, 40), file=sys.stderr)

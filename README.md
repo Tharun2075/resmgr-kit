@@ -19,10 +19,10 @@ python3 -m venv .venv && .venv/bin/pip install -e .
 
 `gen` checks the spec and writes `<name>.c`, `<name>.h`, a small client, a `qcc` Makefile, a `<name>.build` image fragment, a `<name>.secpol` snippet and `tests/test_<name>.py`. `test` runs gen, builds with `qcc`, starts or reuses the QEMU target, copies the binaries over ssh, starts the resource manager, runs the generated tests from the host, prints `uname -a`, writes `junit.xml` and stops the server. It exits 0 only when every test passes. The host tests in `tests/host` need no QNX toolchain.
 
-`test` needs the QNX SDP 8.0 toolchain and a QNX 8.0 target reachable over ssh. Set them in `~/.config/resmgr-kit/config.toml` or `./resmgr-kit.local.toml`:
+`test` needs the QNX SDP 8.0 toolchain and a QNX 8.0 target reachable over ssh. Set them in `~/.config/resmgr-kit/config.toml`, or pass another file with `test --config <file>`. A config file in the current folder is never read on its own, because its commands run in a shell:
 
 ```toml
-build_command = "make -C '{dir}'"        # how to run make with qcc on PATH
+build_command = "make -C {dir}"          # how to run make with qcc on PATH; {dir} is quoted for you
 target = "root@127.0.0.1"
 port = 2222
 ssh_key = "~/.ssh/id_qnx_target"

@@ -51,6 +51,9 @@ def test_max_below_min_names_field():
     (bad(state=[{"name": "rate", "type": "uint32", "min": -1}]), "state[0] (rate).min"),
     (bad(timer={"period_ms": 10, "rate_field": "rate", "actions": [{"op": "inc", "field": "rate"}]}), "timer"),
     (bad(devctls=[{"name": "ARM", "code": 1, "op": "notify"}]), "devctls[0] (ARM).op"),
+    (bad(description="ends a comment */ int x;"), "description"),
+    (bad(description="two\nlines"), "description"),
+    (bad(state=[{"name": "rate", "type": "uint32", "unit": "Hz */"}]), "state[0].unit"),
 ])
 def test_bad_spec_names_field(data, where):
     with pytest.raises(specmod.SpecError) as err:
