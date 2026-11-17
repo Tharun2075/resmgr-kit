@@ -30,6 +30,13 @@ def test_secpol_grants_pathspace(example):
     assert "PATHSPACE" in out[f"{example.stem}.secpol"].upper()
 
 
+def test_secpol_has_launcher_and_load_rules(example):
+    out = render.render(specmod.load(example), example.name)[f"{example.stem}.secpol"]
+    for word in ("settypeid", "channel_connect", "prot_exec", "map_fixed", "--secpol=open"):
+        assert word in out, word
+    assert re.search(r"allow_attach \w+_t \{ /dev/\S+ \};", out)
+
+
 def test_templates_use_core_api():
     text = (TEMPLATES / "resmgr.c.j2").read_text()
     for word in API + ["MsgDeliverEvent"]:
