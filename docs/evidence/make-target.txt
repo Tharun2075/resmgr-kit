@@ -1,0 +1,13 @@
+# tools/make-target.sh end-to-end run, 2026-11-17T13:49:40Z, macOS host + OrbStack build machine, port 2224
+$ QNX_RUN="orb run -m qnx-host" PORT=2224 tools/make-target.sh build
+make-target: mkqnximage in ~/r2b-mt-img (a few minutes)
+make-target: image in <IMG_DIR>
+# (note, not tool output) ls -l <IMG_DIR>: ifs.bin 10930988 B, disk-qemu 157131264 B, disk-qemu.vmdk 169 B; build wall time 14 s
+$ PORT=2224 tools/make-target.sh start
+target: booted, ssh up on port 2224 after 12s
+$ PORT=2224 tools/make-target.sh ssh uname -a
+QNX noname 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+$ PORT=2224 tools/make-target.sh stop
+target: stopped
+$ PORT=2224 tools/make-target.sh status
+stopped

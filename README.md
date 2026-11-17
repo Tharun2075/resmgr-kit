@@ -16,6 +16,7 @@ On QNX every driver and sensor service is a resource manager: a normal process t
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -e .
+tools/make-target.sh build && tools/make-target.sh start   # QNX 8.0 x86_64 image + QEMU, ssh on port 2222
 .venv/bin/resmgr-kit gen examples/vsensor/vsensor.yaml -o build/vsensor
 .venv/bin/resmgr-kit test examples/vsensor/vsensor.yaml
 .venv/bin/pytest tests/host -q
@@ -30,9 +31,11 @@ build_command = "make -C {dir}"          # how to run make with qcc on PATH; {di
 target = "root@127.0.0.1"
 port = 2222
 ssh_key = "~/.ssh/id_qnx_target"
-target_start = "./start-target.sh start" # run when ssh does not answer
+target_start = "tools/make-target.sh start" # run when ssh does not answer
 ssh_insecure_local = true                # default; skips host-key checks for the local QEMU target
 ```
+
+`tools/make-target.sh` makes `~/.ssh/id_qnx_target` if it is missing, builds the image with `mkqnximage`, boots it in QEMU (TCG) with the host port forwarded to guest port 22 and waits until ssh answers; on macOS set `QNX_RUN="orb run -m qnx-host"` so `mkqnximage` runs in the Linux machine. Its header lists the settings (`PORT`, `IMG_DIR`, `KEY`). Sample run: [make-target.txt](docs/evidence/make-target.txt).
 
 `ssh_insecure_local = true` (the default) turns off ssh host-key checking, because the local QEMU image gets a new host key on every rebuild. Set it to `false` for any target that is not a throw-away local VM; ssh then checks `~/.ssh/known_hosts`.
 

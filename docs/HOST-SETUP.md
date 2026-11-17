@@ -32,7 +32,14 @@ The build folder must be visible in both places; OrbStack shares the Mac home fo
 
 ## C. Target image
 
-Make an ssh key and build an x86_64 image that trusts it:
+One command makes the ssh key (if missing), builds the image and copies it to `~/qnx-target`:
+
+```sh
+tools/make-target.sh build                                  # Linux host with the SDP
+QNX_RUN="orb run -m qnx-host" tools/make-target.sh build    # macOS with OrbStack
+```
+
+By hand, the same steps are:
 
 ```sh
 ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_qnx_target
@@ -45,7 +52,13 @@ The result is `output/ifs.bin`, `output/disk-qemu` and `output/disk-qemu.vmdk`. 
 
 ## D. Boot and connect
 
-Start QEMU with TCG on the x86_64 image and forward host port 2222 to the guest ssh port. Booting to ssh takes about 12 seconds; a console log is in [boot-log.txt](evidence/boot-log.txt). Put the start command in a script and point `target_start` at it.
+Start QEMU with TCG on the x86_64 image and forward host port 2222 to the guest ssh port. Booting to ssh takes about 12 seconds; a console log is in [boot-log.txt](evidence/boot-log.txt). `tools/make-target.sh start` does this and waits until ssh answers; `stop`, `status` and `ssh <cmd>` are the other commands, and `PORT=2224` picks another port. Point `target_start` at it:
+
+```toml
+target_start = "tools/make-target.sh start"
+```
+
+Sample run: [make-target.txt](evidence/make-target.txt).
 
 ## E. Config and first run
 
