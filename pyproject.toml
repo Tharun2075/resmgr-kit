@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resmgr-kit"
+version = "0.1.0"
+description = "Generate, build, deploy and test QNX 8.0 resource managers from a YAML spec"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = [
+    "Jinja2>=3.1",
+    "PyYAML>=6.0",
+    "jsonschema>=4.17",
+    "pytest>=7.0",
+]
+
+[project.scripts]
+resmgr-kit = "resmgr_kit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+resmgr_kit = ["schema.json", "templates/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/host"]
