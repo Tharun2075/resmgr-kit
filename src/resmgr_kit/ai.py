@@ -14,7 +14,8 @@ Provider settings come from the environment only:
   LLM_BASE_URL  default https://api.anthropic.com for anthropic; required for openai-compatible
 
 claude-cli needs no key: it pipes the prompt to the locally logged-in Claude Code CLI
-(`claude -p --output-format text`, tools off) and uses its login.
+(`claude -p --output-format text`, tools off, project settings and MCP servers
+ignored, run from an empty folder) and uses its login.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import textwrap
 import urllib.error
 import urllib.request
@@ -186,14 +188,18 @@ def _claude_cli(model: str, env) -> Provider:
         raise AIError("LLM_PROVIDER=claude-cli needs the Claude Code CLI, but no `claude` "
                       "binary is on PATH. Install it and log in once (`claude`), or pick "
                       "another LLM_PROVIDER.")
-    cmd = [exe, "-p", "--output-format", "text", "--tools", ""]
+    # tools off, no project settings or MCP servers, run from an empty folder: text in, text out
+    cmd = [exe, "-p", "--output-format", "text", "--tools", "", "--setting-sources", "user",
+           "--strict-mcp-config"]
     if model:
         cmd += ["--model", model]
 
     def call(system: str, prompt: str) -> str:
         try:
-            done = subprocess.run(cmd + ["--system-prompt", system], input=prompt, text=True,
-                                  capture_output=True, timeout=600, env=dict(env))
+            with tempfile.TemporaryDirectory(prefix="resmgr-kit-ai-") as cwd:
+                done = subprocess.run(cmd + ["--system-prompt", system], input=prompt,
+                                      text=True, capture_output=True, timeout=600, cwd=cwd,
+                                      env=dict(env))
         except subprocess.TimeoutExpired:
             raise runner.RunError("model request failed: claude CLI timed out") from None
         if done.returncode != 0:
