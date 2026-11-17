@@ -1,4 +1,6 @@
 """Settings loading for `resmgr-kit test`; nothing here touches a target."""
+from pathlib import Path
+
 import pytest
 
 from resmgr_kit import runner
@@ -27,3 +29,10 @@ def test_explicit_config_is_read(no_user_config):
 def test_missing_explicit_config_fails(no_user_config):
     with pytest.raises(runner.RunError):
         runner.load_config(str(no_user_config / "nope.toml"))
+
+
+def test_build_command_with_literal_braces_runs(no_user_config, monkeypatch):
+    monkeypatch.setenv("RESMGR_KIT_BUILD", 'echo "${HOME} {x}" > /dev/null; true # {dir}')
+    example = next((Path(__file__).parents[2] / "examples").glob("*/*.yaml"))
+    with pytest.raises(runner.RunError, match="did not produce"):
+        runner.test(str(example), str(no_user_config / "out"))

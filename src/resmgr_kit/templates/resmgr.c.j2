@@ -292,6 +292,8 @@ static int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb)
         if (msg->i.nbytes < sizeof(ev) || ctp->info.msglen < sizeof(msg->i) + sizeof(ev))
             return EINVAL;
         memcpy(&ev, data, sizeof(ev));
+        if (MsgVerifyEvent(ctp->rcvid, &ev) == -1)
+            return errno;
         pthread_mutex_lock(&state_lock);
         for (int i = 0; i < MAX_ARMED; i++) {
             if (!armed[i].used) {

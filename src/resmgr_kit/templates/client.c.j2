@@ -12,6 +12,9 @@
 {% endif %}
 {% endfor %}
  *   {{ name }}_client RAW <dcmd>    (sends a bare command, to test unknown codes)
+{% if devctls %}
+ *   {{ name }}_client SHORT         (sends {{ devctls[0].name }} with a 2-byte payload, expects EINVAL)
+{% endif %}
  * Prints "ok value=N" or "error errno=NAME (N)"; exits 0 on success, 1 on error.
  */
 #include <errno.h>
@@ -58,7 +61,7 @@ static int parse_ll(const char *s, long long *out)
 
 static int usage(void)
 {
-    fprintf(stderr, "usage: {{ name }}_client {% for d in devctls %}{{ d.name }}|{% endfor %}RAW [value]\n");
+    fprintf(stderr, "usage: {{ name }}_client {% for d in devctls %}{{ d.name }}|{% endfor %}RAW|SHORT [value]\n");
     return 2;
 }
 
@@ -78,6 +81,16 @@ int main(int argc, char *argv[])
     if ((fd = open({{ NAME }}_PATH, O_RDONLY)) == -1)
         return fail(errno);
 
+{% if devctls %}
+    if (strcmp(cmd, "SHORT") == 0) {
+        int16_t data = 0;
+        rc = devctl(fd, DCMD_{{ NAME }}_{{ devctls[0].name }}, &data, sizeof(data), NULL);
+        if (rc != EOK)
+            return fail(rc);
+        printf("ok value=%d\n", data);
+        return 0;
+    }
+{% endif %}
     if (strcmp(cmd, "RAW") == 0) {
         int32_t data = 0;
         if (argc < 3)

@@ -42,6 +42,7 @@ def test_max_below_min_names_field():
 @pytest.mark.parametrize("data, where", [
     (bad(name="9bad"), "name"),
     (bad(path="/tmp/x"), "path"),
+    (bad(path="/dev/../etc/x"), "path"),
     (bad(extra=1), "(top level)"),
     (bad(state=[{"name": "rate", "type": "float"}]), "state[0].type"),
     (bad(read={"fields": ["nope"]}), "read.fields"),

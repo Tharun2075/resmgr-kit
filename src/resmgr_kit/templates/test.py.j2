@@ -132,6 +132,13 @@ def test_{{ d.name | lower }}_below_min():
 {% endif %}
 {% endfor %}
 
+{% if devctls %}
+
+def test_undersized_devctl_is_einval():
+    ok, value, text = client("SHORT")
+    assert not ok and value == "EINVAL", text
+{% endif %}
+
 
 def test_unknown_devctl_is_enotty():
     ok, value, text = client("RAW", {{ unknown_dcmd }})

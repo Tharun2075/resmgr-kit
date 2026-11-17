@@ -119,7 +119,7 @@ def test(spec_path: str, outdir: str | None = None, config: str | None = None) -
     render.write(spec, out, Path(spec_path).name)
 
     step("build")
-    res = subprocess.run(cfg["build_command"].format(dir=shlex.quote(str(out))), shell=True,
+    res = subprocess.run(cfg["build_command"].replace("{dir}", shlex.quote(str(out))), shell=True,
                          capture_output=True, text=True, timeout=600)
     if res.returncode != 0:
         print(_tail(res.stdout + res.stderr, 40), file=sys.stderr)

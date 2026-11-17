@@ -13,7 +13,7 @@
     "path": {
       "description": "Path the resource manager attaches, e.g. /dev/vsensor0.",
       "type": "string",
-      "pattern": "^/dev/[A-Za-z0-9_][A-Za-z0-9_./-]{0,62}$"
+      "pattern": "^/dev/(?!.*\\.\\.)[A-Za-z0-9_][A-Za-z0-9_./-]{0,62}$"
     },
     "description": {
       "description": "One line for the file headers; no control characters and no '*/'.",
