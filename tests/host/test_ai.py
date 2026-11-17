@@ -8,6 +8,7 @@ from resmgr_kit import ai, cli, render, runner, spec as specmod
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "examples/vsensor_ai/vsensor_ai.yaml"
+WRITE_BLOCK = SPEC.read_text()[SPEC.read_text().index("write:\n"):SPEC.read_text().index("devctls:")]
 
 GOOD = """```c
 uint32_t in, out;
@@ -48,7 +49,16 @@ def offline(tmp_path, monkeypatch, no_net):
 def test_gen_emits_a_marked_stub_region(src):
     assert src.count(ai.BEGIN.format(name="SET_RATE")) == 1
     assert "return ENOSYS;" in ai.region_body(src, "SET_RATE")
-    assert specmod.ai_regions(specmod.load(SPEC)) == ["SET_RATE"]
+    assert src.count(ai.BEGIN.format(name="io_write")) == 1
+    assert specmod.ai_regions(specmod.load(SPEC)) == ["io_write", "SET_RATE"]
+
+
+def one_region(tmp_path):
+    """The example spec with its write handler dropped, so only SET_RATE is AI."""
+    p = tmp_path / "vsensor_ai.yaml"
+    p.write_text(SPEC.read_text().replace(WRITE_BLOCK, ""))
+    assert specmod.ai_regions(specmod.load(p)) == ["SET_RATE"]
+    return p
 
 
 def test_region_insertion_changes_only_the_region(src):
@@ -92,7 +102,8 @@ def test_loop_feeds_back_and_stops_on_green(offline):
             return 1, "test_vsensor_ai.py::test_set_rate_mid FAILED\nE   OSError: ENOSYS\n"
         return 0, "8 passed"
 
-    rc = ai.run(str(SPEC), str(offline / "out"), max_iter=3, provider=provider, checker=checker)
+    rc = ai.run(str(one_region(offline)), str(offline / "out"), max_iter=3,
+                provider=provider, checker=checker)
     assert rc == 0
     assert len(prompts) == 2 and len(checks) == 2
     assert "Your last body failed" in prompts[1] and "test_set_rate_mid FAILED" in prompts[1]
@@ -120,8 +131,22 @@ def test_build_error_is_fed_back(offline):
             raise runner.RunError("build failed:\nvsensor_ai.c:270: error: 'x' undeclared")
         return 0, "passed"
 
-    assert ai.run(str(SPEC), str(offline / "out"), provider=provider, checker=checker) == 0
+    assert ai.run(str(one_region(offline)), str(offline / "out"),
+                  provider=provider, checker=checker) == 0
     assert "'x' undeclared" in prompts[1]
+
+
+def test_two_regions_get_one_prompt_each(offline):
+    asked = []
+
+    def provider(system, prompt):
+        asked.append(prompt)
+        return "```c\nreturn EOK;\n```"
+
+    rc = ai.run(str(SPEC), str(offline / "out"), max_iter=1, provider=provider,
+                checker=lambda s, o, c: (0, "passed"))
+    assert rc == 0 and len(asked) == 2
+    assert sorted(p.name for p in (offline / "out/ai_regions").iterdir()) == ["SET_RATE.c", "io_write.c"]
 
 
 def test_no_key_exits_2(offline, monkeypatch, capsys):
@@ -153,7 +178,7 @@ def test_openai_compatible_needs_model_and_base():
 def test_impl_ai_needs_behaviour(tmp_path):
     text = SPEC.read_text().replace(
         ',\n     behaviour: "clamps to 1..1000 Hz, EINVAL on short payload"}', "}")
-    assert "behaviour:" not in text
+    assert "clamps to 1..1000 Hz, EINVAL" not in text
     p = tmp_path / "s.yaml"
     p.write_text(text)
     with pytest.raises(specmod.SpecError, match="behaviour"):

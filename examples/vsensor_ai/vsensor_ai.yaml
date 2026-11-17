@@ -1,8 +1,9 @@
-# AI mode example: the vsensor spec, but SET_RATE is left for `resmgr-kit ai`
-# to write from its behaviour line; the generated live tests decide when it is done.
+# AI mode example: the vsensor spec, but the SET_RATE devctl and the write handler
+# are left for `resmgr-kit ai` to write from their behaviour lines; the generated
+# live tests decide when they are done.
 name: vsensor_ai
 path: /dev/vsensor_ai0
-description: Simulated sensor whose SET_RATE handler is written in AI mode
+description: Simulated sensor whose SET_RATE and write handlers are written in AI mode
 buffer_size: 256
 threads:
   lo_water: 2
@@ -14,6 +15,11 @@ state:
   - {name: count, type: uint32, init: 0}
 read:
   fields: [sample, rate_hz, count]
+write:
+  field: rate_hz
+  out_of_range: clamp
+  impl: ai
+  behaviour: "a decimal number sets the rate, clamped to 1..1000 Hz; text that is not a number gives EINVAL"
 devctls:
   - {name: SET_RATE, code: 1, op: set, field: rate_hz, out_of_range: clamp, impl: ai,
      behaviour: "clamps to 1..1000 Hz, EINVAL on short payload"}
