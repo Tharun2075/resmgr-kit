@@ -35,6 +35,16 @@ Compare with your own install: `pip freeze`. Versions differ over time; the lice
 - OpenSSH client (`ssh`, `scp`): BSD-style licence, called through the system install.
 - OrbStack: optional, macOS only, used under its own terms for a Linux build machine.
 
+## Optional third-party AI service
+
+`resmgr-kit ai` (optional; `gen` and `test` never use it) sends the spec, the generated C file and the region to fill to a large language model chosen by the user:
+
+- Anthropic API (default provider, default model `claude-sonnet-5-5`), used with the user's own `LLM_API_KEY` under Anthropic's commercial terms.
+- Any OpenAI-compatible endpoint the user configures, under that provider's terms.
+- The Claude Code CLI (`LLM_PROVIDER=claude-cli`), under its own terms, with the user's own login.
+
+No SDK is shipped or installed for this: the calls use the Python standard library (`urllib`). Model output is not trusted: it is accepted only when it builds and every generated live test passes on the QNX target.
+
 ## QNX software
 
 QNX Software Development Platform 8.0 (`qcc`, `mkqnximage`, the target image and its libraries) is **not** part of this repository. You download it yourself from QNX and use it under your own licence; this project was built and tested under the QNX Everywhere Non-Commercial licence. The generated C code links against QNX libraries only on your machine.

@@ -78,7 +78,7 @@ devctls:
 3. Build, deploy and run the generated live tests on the target, as `resmgr-kit test` does.
 4. On a compiler error or a failing test, send the output back and try again, up to `--max-iter` rounds (default 3). Each round prints its diff and result.
 
-On green the result is in `build/<name>/` (bodies also in `build/<name>/ai_regions/`); review it before you copy it anywhere. `resmgr-kit test` regenerates the stub, so it does not keep an AI body.
+On green the result is in `build/<name>/` (bodies also in `build/<name>/ai_regions/`); review it before you copy it anywhere. AI mode sends the spec and generated C to the third-party model you choose; providers and their terms are listed in [THIRD-PARTY.md](THIRD-PARTY.md). `resmgr-kit test` regenerates the stub, so it does not keep an AI body.
 
 ```sh
 export LLM_API_KEY=...                 # never commit it
