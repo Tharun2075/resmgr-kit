@@ -45,7 +45,7 @@ A bad spec stops at the schema check with exit 2 and an error that names the fie
 | Build files | [Makefile.j2](src/resmgr_kit/templates/Makefile.j2), [build.j2](src/resmgr_kit/templates/build.j2) | `qcc` Makefile and an image build-file fragment |
 | Security policy | [secpol.j2](src/resmgr_kit/templates/secpol.j2) | Type, `allow_attach`, abilities (see [TROUBLESHOOTING](docs/TROUBLESHOOTING.md)) |
 | Tests | [test.py.j2](src/resmgr_kit/templates/test.py.j2) | pytest file that drives the live device over ssh |
-| Host tests | [tests/host](tests/host) | 88 tests that need no QNX toolchain |
+| Host tests | [tests/host](tests/host) | Tests that need no QNX toolchain |
 | Examples | [vsensor](examples/vsensor/vsensor.yaml), [estop](examples/estop/estop.yaml), [counter](examples/counter/counter.yaml), [vsensor_ai](examples/vsensor_ai/vsensor_ai.yaml) | Specs used for the live runs; counter is the codelab spec, vsensor_ai the AI-mode spec |
 
 ## Where each step runs
