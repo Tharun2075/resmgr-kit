@@ -4,6 +4,7 @@
 |---|---|
 | What you will learn | How a QNX 8.0 resource manager is put together (`dispatch_create`, `resmgr_attach`, iofunc handlers, a devctl, a pulse timer), how to build it with `qcc`, run it on a QNX target and test the live `/dev` path from your host, and what its security-policy and image build-file pieces look like |
 | Prerequisites | QNX SDP 8.0 with `qcc` (free non-commercial licence), a QNX 8.0 x86_64 QEMU target reachable by ssh, Python 3.11+, git |
+| Tested on | QNX 8.0 x86_64 QEMU target, 2026-11-17: `resmgr-kit test examples/counter/counter.yaml` ran 10 passed in 4.36s; `junit.xml` is written by `resmgr-kit test` |
 | Time | 15 minutes with a ready host; about 60 minutes if you still have to set up the host and target ([HOST-SETUP.md](HOST-SETUP.md)) |
 
 You will write a new device, `/dev/counter0`, from a 15-line YAML spec. A read

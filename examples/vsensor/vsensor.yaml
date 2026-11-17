@@ -1,3 +1,8 @@
+# Why a pulse timer: the sensor samples on its own clock, so a timer sends the
+# server a pulse (SIGEV_PULSE) every period and the handler updates the sample;
+# reads never wait for hardware. Why a clamp: SET_RATE has out_of_range: clamp,
+# so a rate outside 1..1000 Hz is pulled into range and the timer never runs
+# away; the sample field is bounded by min/max the same way.
 # Simulated sensor: a read returns the latest sample; SET_RATE changes the
 # sampling rate (clamped to 1..1000 Hz); a pulse timer produces the samples.
 name: vsensor

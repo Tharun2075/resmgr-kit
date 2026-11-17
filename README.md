@@ -2,15 +2,18 @@
 
 A host tool that turns a short YAML spec into a QNX 8.0 resource manager in C, then builds it with `qcc`, boots QNX 8.0 in QEMU (x86_64 or aarch64), deploys it and runs a generated test suite against the live `/dev` path.
 
+For the `vsensor` example a 25-line YAML spec becomes 479 lines of C (server, header, client), a 131-line live test suite, and 57 lines of Makefile, build-file fragment and security policy ([line-counts.txt](docs/evidence/line-counts.txt)). The generated suite then runs against the live `/dev/vsensor0` on QNX 8.0 ([vsensor-running.txt](docs/evidence/vsensor-running.txt) shows the running server and the result line `13 passed in 4.78s`). The [codelab](docs/CODELAB.md) takes a new developer from spec to a tested `/dev` node in about 15 minutes on a ready host. The target users are developers of sensor and actuator nodes for automotive, industrial and physical-AI (robotics) systems on QNX.
+
 Status: v0.1.0, runs end to end on QNX 8.0 (QEMU x86_64 and aarch64); every claim has a file under [docs/evidence/](docs/evidence/). Project created in November 2026 for the QNX Global Hackathon 2026.
 
 - Target: QNX 8.0 on QEMU x86_64 and QEMU aarch64 (virt), see Targets
 - Toolchain: `qcc` from QNX SDP 8.0
 - Licence: Apache-2.0 (see `LICENSE`)
+- Secure mode: `resmgr-kit test --secpol examples/estop/estop.yaml` compiles the policy, pushes it, enforces it and runs 15 tests, 15 passed ([secpol-test.txt](docs/evidence/secpol-test.txt)); details under Secure-mode targets
 
 ## Why QNX, why real-time
 
-On QNX every driver and sensor service is a resource manager: a normal process that owns a `/dev` path and answers messages. That is what keeps a fault in one sensor node from taking down the system, and it is why QNX sits in cars, industrial controllers and robots. The price is boilerplate: dispatch and thread-pool setup, iofunc handlers, devctl decoding, a pulse timer, plus the security policy and image build-file lines that are easy to forget. For the `vsensor` example a 25-line YAML spec becomes 479 lines of C (server, header, client), a 131-line live test suite, and 57 lines of Makefile, build-file fragment and security policy ([line-counts.txt](docs/evidence/line-counts.txt)). The generated suite then runs against the live `/dev/vsensor0` on QNX 8.0 ([vsensor-running.txt](docs/evidence/vsensor-running.txt) shows the running server and the result line `13 passed in 4.78s`). The [codelab](docs/CODELAB.md) takes a new developer from spec to a tested `/dev` node in about 15 minutes on a ready host. The target users are developers of sensor and actuator nodes for automotive, industrial and physical-AI (robotics) systems on QNX.
+On QNX every driver and sensor service is a resource manager: a normal process that owns a `/dev` path and answers messages. That is what keeps a fault in one sensor node from taking down the system, and it is why QNX sits in cars, industrial controllers and robots. The price is boilerplate: dispatch and thread-pool setup, iofunc handlers, devctl decoding, a pulse timer, plus the security policy and image build-file lines that are easy to forget.
 
 ## Prior art, and what is different
 
@@ -54,7 +57,7 @@ Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TAR
 | Target | Build | State | Evidence |
 |---|---|---|---|
 | x86_64 (QEMU) | `make` | built, run and tested live on QNX 8.0 | [docs/evidence/](docs/evidence/) |
-| aarch64le (64-bit Arm, e.g. Raspberry Pi 4/5) | `make TARGET=aarch64le` | built, run and tested on QEMU aarch64 (virt); not yet run on Arm hardware | [aarch64-build.txt](docs/evidence/aarch64-build.txt), [aarch64-run.txt](docs/evidence/aarch64-run.txt) |
+| aarch64le (64-bit Arm, e.g. Raspberry Pi 4/5) | `make TARGET=aarch64le` | built, run and tested on QEMU aarch64 (virt); targets the Raspberry Pi 4/5 BSP images; not yet run on a board | [aarch64-build.txt](docs/evidence/aarch64-build.txt), [aarch64-run.txt](docs/evidence/aarch64-run.txt) |
 
 ## Documentation
 
