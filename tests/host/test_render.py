@@ -93,3 +93,12 @@ def test_timer_with_fixed_period():
 def test_makefile_offers_aarch64le_target(example):
     mk = render.render(specmod.load(example), example.name)["Makefile"]
     assert "TARGET ?= x86_64" in mk and "aarch64le" in mk and "-Vgcc_nto$(ARCH)" in mk
+
+
+def test_notify_client_registers_event_on_private_channel():
+    # Under a secure secpol, ChannelCreate(0) (public) needs the public_channel
+    # ability the login lacks; QNX 8.0 also refuses unregistered events.
+    out = render.render(specmod.load(Path(__file__).parents[2] / "examples/estop/estop.yaml"), "estop.yaml")
+    c = out["estop_client.c"]
+    assert "ChannelCreate(_NTO_CHF_PRIVATE)" in c and "ChannelCreate(0)" not in c
+    assert "MsgRegisterEvent(&ev, fd)" in c

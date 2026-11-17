@@ -1,9 +1,11 @@
 # resmgr-kit test --secpol examples/estop/estop.yaml on the QNX 8.0 x86_64 secure-mode QEMU image (2026-11-17)
-# Result: the generated estop.secpol is merged, compiled, pushed and enforced (server runs as estop_t).
-# 13/15 pass. ARM_NOTIFY (pulse delivery) fails with EPERM from the server's MsgVerifyEvent;
-# adding event/connection/signal/channel_connect abilities to estop_t and user_root_t did not change it. Open item.
+# Result: the generated estop.secpol is merged, compiled, pushed and enforced (server runs as estop_t). 15/15 pass.
+# Earlier run (13/15): the 2 ARM_NOTIFY tests failed with EPERM. Cause found: the client's ChannelCreate(0)
+# makes a public channel, which needs the public_channel ability the ssh login type does not have
+# (probe on the same image: "ChannelCreate(0)=-1 Operation not permitted", "ChannelCreate(_NTO_CHF_PRIVATE)=1").
+# Fix in the generator: the client now creates a private channel; the event is still registered with MsgRegisterEvent.
 
-== gen ../repo/examples/estop/estop.yaml -> <work>/estop-sp
+== gen examples/estop/estop.yaml -> <work>/estop-sp
 == build
 qcc -Vgcc_ntox86_64 -Wall -O2 -o estop estop.c
 qcc -Vgcc_ntox86_64 -Wall -O2 -o estop_client estop_client.c
@@ -16,10 +18,12 @@ pushed estop.secpol.bin (system policy + estop.secpol)
 on -S /tmp/estop.secpol.bin -T estop_t /tmp/estop
 /dev/estop0 is up
      pid name                                                                             type             
- 2228245 tmp/estop                                                                        32               
+ 1363989 tmp/estop                                                                        32               
 type estop_t = id 32 in the pushed policy
 == pytest
 ============================= test session starts ==============================
+platform darwin -- Python 3.11.17, pytest-9.2.0, pluggy-1.7.0 -- <venv>/bin/python3.11
+rootdir: <work>/estop-sp
 collecting ... collected 15 items
 
 tests/test_estop.py::test_path_exists PASSED                             [  6%]
@@ -35,29 +39,11 @@ tests/test_estop.py::test_unknown_devctl_is_enotty PASSED                [ 66%]
 tests/test_estop.py::test_write_sets_value PASSED                        [ 73%]
 tests/test_estop.py::test_write_above_max PASSED                         [ 80%]
 tests/test_estop.py::test_write_rejects_text PASSED                      [ 86%]
-tests/test_estop.py::test_arm_notify_delivers_pulse FAILED               [ 93%]
-tests/test_estop.py::test_arm_notify_times_out_without_trigger FAILED    [100%]
+tests/test_estop.py::test_arm_notify_delivers_pulse PASSED               [ 93%]
+tests/test_estop.py::test_arm_notify_times_out_without_trigger PASSED    [100%]
 
-=================================== FAILURES ===================================
-________________________ test_arm_notify_delivers_pulse ________________________
-
-    def test_arm_notify_delivers_pulse():
-        # Move away from the trigger value so the next change is a transition.
-        assert sh("echo 0 > " + PATH).returncode == 0
-        count_before = read_state()["trips"]
-        trigger = "echo 1 > " + PATH
-        out = sh("{ %s ARM_NOTIFY 3000 & } ; sleep 0.5; %s; wait" % (CLIENT, trigger), timeout=30)
->       assert "armed" in out.stdout, out.stdout + out.stderr
-E       AssertionError: error errno=EPERM (1)
-E         
-E       assert 'armed' in 'error errno=EPERM (1)\n'
-E        +  where 'error errno=EPERM (1)\n' = CompletedProcess(args=['ssh', '-p', '2223', '-i', '~/.ssh/qnx_week1', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes', 'root@127.0.0.1', '{ /tmp/estop_client ARM_NOTIFY 3000 & } ; sleep 0.5; echo 1 > /dev/estop0; wait'], returncode=0, stdout='error errno=EPERM (1)\n', stderr='').stdout
-
-tests/test_estop.py:134: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_estop.py::test_arm_notify_delivers_pulse - AssertionError: ...
-FAILED tests/test_estop.py::test_arm_notify_times_out_without_trigger - Asser...
-========================= 2 failed, 13 passed in 6.38s =========================
+- generated xml file: <work>/estop-sp/junit.xml -
+============================== 15 passed in 6.50s ==============================
 == target info
 QNX secpol 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
 junit: <work>/estop-sp/junit.xml

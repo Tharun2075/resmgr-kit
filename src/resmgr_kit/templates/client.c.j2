@@ -133,7 +133,9 @@ int main(int argc, char *argv[])
 
         if (argc < 3 || v < 1)
             return usage();
-        if ((chid = ChannelCreate(0)) == -1 ||
+        /* A private channel: only this process connects to it, and under a
+         * secure secpol a public one needs the public_channel ability. */
+        if ((chid = ChannelCreate(_NTO_CHF_PRIVATE)) == -1 ||
             (coid = ConnectAttach(0, 0, chid, _NTO_SIDE_CHANNEL, 0)) == -1)
             return fail(errno);
         SIGEV_PULSE_INIT(&ev, coid, SIGEV_PULSE_PRIO_INHERIT, _PULSE_CODE_MINAVAIL, 0);
