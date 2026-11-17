@@ -1,0 +1,16 @@
+# Tick counter: a read returns how many 100 ms ticks have passed since start
+# or since the last RESET; RESET sets the count (send 0 to start over).
+name: counter
+path: /dev/counter0
+description: Tick counter with a RESET devctl
+state:
+  - {name: count, type: uint32, init: 0}
+read:
+  fields: [count]
+timer:
+  period_ms: 100
+  actions:
+    - {op: inc, field: count}
+devctls:
+  - {name: RESET, code: 1, op: set, field: count}
+  - {name: GET_COUNT, code: 2, op: get, field: count}

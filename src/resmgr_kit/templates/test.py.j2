@@ -102,7 +102,11 @@ def test_{{ d.name | lower }}_round_trip():
     ok, value, text = client("{{ d.name }}", {{ d.probe.mid }})
     assert ok, text
     assert value == {{ d.probe.mid }}
-{% if d.field in read.fields %}
+{% if d.field in read.fields and d.field in timer_fields %}
+    # The timer keeps changing this field, so the read only has to stay in range.
+    lo, hi = LIMITS["{{ d.field }}"]
+    assert lo <= read_state()["{{ d.field }}"] <= hi
+{% elif d.field in read.fields %}
     assert read_state()["{{ d.field }}"] == {{ d.probe.mid }}
 {% endif %}
 {% if d.probe.above is not none %}
