@@ -10,7 +10,11 @@ Status: v0.1.0, runs end to end on QNX 8.0 (QEMU x86_64); every claim has a file
 
 ## Why QNX, why real-time
 
-On QNX every driver and sensor service is a resource manager: a normal process that owns a `/dev` path and answers messages. That is what keeps a fault in one sensor node from taking down the system, and it is why QNX sits in cars, industrial controllers and robots. The price is boilerplate: dispatch and thread-pool setup, iofunc handlers, devctl decoding, a pulse timer, plus the security policy and image build-file lines that are easy to forget. For the `vsensor` example a 25-line YAML spec becomes 479 lines of C (server, header, client), a 131-line live test suite, and 57 lines of Makefile, build-file fragment and security policy ([line-counts.txt](docs/evidence/line-counts.txt)). The generated suite then runs against the live `/dev/vsensor0` on QNX 8.0 (`13 passed in 4.78s` in our last run, [vsensor-running.txt](docs/evidence/vsensor-running.txt) shows the running server). The [codelab](docs/CODELAB.md) takes a new developer from spec to a tested `/dev` node in about 15 minutes on a ready host. The target users are developers of sensor and actuator nodes for automotive, industrial and physical-AI (robotics) systems on QNX.
+On QNX every driver and sensor service is a resource manager: a normal process that owns a `/dev` path and answers messages. That is what keeps a fault in one sensor node from taking down the system, and it is why QNX sits in cars, industrial controllers and robots. The price is boilerplate: dispatch and thread-pool setup, iofunc handlers, devctl decoding, a pulse timer, plus the security policy and image build-file lines that are easy to forget. For the `vsensor` example a 25-line YAML spec becomes 479 lines of C (server, header, client), a 131-line live test suite, and 57 lines of Makefile, build-file fragment and security policy ([line-counts.txt](docs/evidence/line-counts.txt)). The generated suite then runs against the live `/dev/vsensor0` on QNX 8.0 ([vsensor-running.txt](docs/evidence/vsensor-running.txt) shows the running server and the result line `13 passed in 4.78s`). The [codelab](docs/CODELAB.md) takes a new developer from spec to a tested `/dev` node in about 15 minutes on a ready host. The target users are developers of sensor and actuator nodes for automotive, industrial and physical-AI (robotics) systems on QNX.
+
+## Prior art, and what is different
+
+QNX documents the resource manager pattern with skeleton code to copy and edit, and `mkqnximage` builds a target image; neither writes the handlers, the tests or the policy for you. A generic template engine or an LLM prompt can produce C, but nothing checks it against the device. resmgr-kit differs in three ways: the spec is schema-checked before any code exists (a bad field exits 2 and names it); every spec also yields a live test suite that runs against the real `/dev` path on QNX 8.0, and in AI mode those tests are the gate a model's code must pass; and the `.secpol` snippet and image build-file lines come out of the same spec, so they cannot drift from the code.
 
 ## Quick start
 
@@ -51,7 +55,6 @@ Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TAR
 - [ARCHITECTURE.md](ARCHITECTURE.md): pipeline diagram and component list
 - [docs/HOST-SETUP.md](docs/HOST-SETUP.md): Linux x86_64 and macOS host, QEMU, target image
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md): known problems and fixes
-- [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md): contest checklist
 - [THIRD-PARTY.md](THIRD-PARTY.md): dependencies and licences
 - [docs/evidence](docs/evidence): logs from live runs on QNX 8.0
 
@@ -59,7 +62,7 @@ Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TAR
 
 - `examples/vsensor`: `/dev/vsensor0`. A read gives the latest simulated sample; `SET_RATE` clamps to 1..1000 Hz; a pulse timer drives the samples from a thread pool.
 - `examples/estop`: `/dev/estop0`. Writing `1` trips it; a read gives the state; a client arms a pulse with `ARM_NOTIFY` and gets it on the trip.
-- `examples/vsensor_ai`: the same sensor, but `SET_RATE` is `impl: ai` and is written in AI mode (below).
+- `examples/vsensor_ai`: the same sensor, but the `SET_RATE` devctl and the write handler are `impl: ai` and are written in AI mode (below).
 
 ## AI mode
 
@@ -96,7 +99,7 @@ LLM_PROVIDER=claude-cli resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml
 | `LLM_MODEL` | default `claude-sonnet-5-5` for anthropic; required for openai-compatible |
 | `LLM_BASE_URL` | default `https://api.anthropic.com`; required for openai-compatible (for example a local server's `/v1`) |
 
-`claude-cli` sends the same prompt on stdin to `claude -p --output-format text` with its tools turned off, from an empty folder with project settings and MCP servers ignored, so it uses the Claude Code CLI's own login and needs no key; resmgr-kit adds no network code for it. `LLM_MODEL`, if set, is passed as `--model` (for example `sonnet`); otherwise the CLI's default model is used. Without a `claude` binary on `PATH` it says so and exits 2. Full transcripts of real runs on the QNX target: [docs/evidence/ai-real-run.txt](docs/evidence/ai-real-run.txt) (green on the first round) and [docs/evidence/ai-real-run-fail-fix.txt](docs/evidence/ai-real-run-fail-fix.txt) (a behaviour line that disagrees with the spec fails 2 live tests, the model fixes it on round 2).
+`claude-cli` sends the same prompt on stdin to `claude -p --output-format text` with its tools turned off, from an empty folder with project settings and MCP servers ignored, so it uses the Claude Code CLI's own login and needs no key; resmgr-kit adds no network code for it. `LLM_MODEL`, if set, is passed as `--model` (for example `sonnet`); otherwise the CLI's default model is used. Without a `claude` binary on `PATH` it says so and exits 2. Full transcripts of real runs on the QNX target: [docs/evidence/ai-real-run-two-regions.txt](docs/evidence/ai-real-run-two-regions.txt) (both regions of `examples/vsensor_ai` written by the model, `15 passed` on the first round; bodies in [ai-real-run-two-regions-bodies.txt](docs/evidence/ai-real-run-two-regions-bodies.txt)), [docs/evidence/ai-real-run.txt](docs/evidence/ai-real-run.txt) (the earlier one-region spec, green on the first round) and [docs/evidence/ai-real-run-fail-fix.txt](docs/evidence/ai-real-run-fail-fix.txt) (a behaviour line that disagrees with the spec fails 2 live tests, the model fixes it on round 2).
 
 AI output is reviewed and tested; no AI code runs without passing on target. No AI part is a safety component: AI mode writes demo handlers for a prototype, and the generated live tests are the only bar it has to clear.
 
