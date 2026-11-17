@@ -1,0 +1,64 @@
+"""Rendering checks that need no QNX toolchain or target."""
+import ast
+import re
+from pathlib import Path
+
+from resmgr_kit import cli, render, spec as specmod
+
+TEMPLATES = Path(render.__file__).parent / "templates"
+API = ["dispatch_create", "iofunc_attr_init", "resmgr_attach", "_RESMGR_NPARTS"]
+
+
+def test_gen_writes_all_files(example, tmp_path):
+    assert cli.main(["gen", str(example), "-o", str(tmp_path)]) == 0
+    name = example.stem
+    for rel in (f"{name}.c", f"{name}.h", f"{name}_client.c", "Makefile",
+                f"{name}.build", f"{name}.secpol", f"tests/test_{name}.py"):
+        assert (tmp_path / rel).is_file(), rel
+
+
+def test_resmgr_uses_core_api(example):
+    out = render.render(specmod.load(example), example.name)
+    c = out[f"{example.stem}.c"]
+    for word in API:
+        assert word in c, word
+    assert "iofunc_read_verify" in c and "iofunc_write_verify" in c
+
+
+def test_secpol_grants_pathspace(example):
+    out = render.render(specmod.load(example), example.name)
+    assert "PATHSPACE" in out[f"{example.stem}.secpol"].upper()
+
+
+def test_templates_use_core_api():
+    text = (TEMPLATES / "resmgr.c.j2").read_text()
+    for word in API + ["MsgDeliverEvent"]:
+        assert word in text, word
+
+
+def test_generated_tests_are_valid_python(example):
+    out = render.render(specmod.load(example), example.name)
+    tree = ast.parse(out[f"tests/test_{example.stem}.py"])
+    tests = [n.name for n in tree.body if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")]
+    assert len(tests) >= 6
+    assert len(tests) == len(set(tests))
+
+
+def test_devctl_codes_are_unique(example):
+    out = render.render(specmod.load(example), example.name)
+    codes = re.findall(r"#define DCMD_\w+\s+__DIO\w*\(_DCMD_MISC,\s*(\d+)", out[f"{example.stem}.h"])
+    assert codes and len(codes) == len(set(codes))
+
+
+def test_threads_and_timer_are_optional():
+    base = {"name": "plain", "path": "/dev/plain0",
+            "state": [{"name": "v", "type": "int32"}], "read": {"fields": ["v"]}}
+    c = render.render(specmod.validate(base))["plain.c"]
+    assert "thread_pool_create" not in c and "timer_create" not in c
+    assert "dispatch_block" in c
+
+
+def test_no_host_paths_leak(example, tmp_path):
+    out = render.render(specmod.load(example), example.name)
+    for name, text in out.items():
+        assert str(Path.home()) not in text and str(Path.cwd()) not in text, name
