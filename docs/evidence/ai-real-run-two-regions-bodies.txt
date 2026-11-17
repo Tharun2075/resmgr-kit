@@ -1,0 +1,67 @@
+# Full bodies the model wrote in docs/evidence/ai-real-run-two-regions.txt (from build/vsensor_ai/ai_regions/, unedited).
+# ---- region io_write.c (model-written body, unedited)
+    char buf[BUFSZ];
+    char *end;
+    size_t n = msg->i.nbytes;
+    ssize_t got;
+    long long val;
+    uint32_t v;
+    int rc;
+
+    if (n == 0 || n >= sizeof(buf))
+        return EINVAL;
+    got = resmgr_msgget(ctp, buf, n, sizeof(msg->i));
+    if (got < 0)
+        return errno;
+    if (got == 0)
+        return EINVAL;
+    buf[got] = '\0';
+
+    {
+        const char *p = buf;
+        while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+            p++;
+        if (*p == '\0')
+            return EINVAL;
+        errno = 0;
+        val = strtoll(p, &end, 10);
+        if (end == p)
+            return EINVAL;
+        while (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r')
+            end++;
+        if (*end != '\0')
+            return EINVAL;
+        /* On overflow strtoll saturates; check_rate_hz() clamps it. */
+    }
+
+    pthread_mutex_lock(&state_lock);
+    rc = check_rate_hz(val, 1, &v);
+    if (rc == EOK)
+        set_rate_hz(v);
+    pthread_mutex_unlock(&state_lock);
+    if (rc != EOK)
+        return rc;
+
+    _IO_SET_WRITE_NBYTES(ctp, msg->i.nbytes);
+    return _RESMGR_NPARTS(0);
+
+# ---- region SET_RATE.c (model-written body, unedited)
+        uint32_t in, v;
+        int rc;
+
+        if (msg->i.nbytes < sizeof(in) ||
+            ctp->info.msglen - sizeof(msg->i) < sizeof(in))
+            return EINVAL;
+        memcpy(&in, data, sizeof(in));
+
+        pthread_mutex_lock(&state_lock);
+        rc = check_rate_hz((long long)in, 1, &v);
+        if (rc == EOK)
+            set_rate_hz(v);
+        pthread_mutex_unlock(&state_lock);
+        if (rc != EOK)
+            return rc;
+
+        memcpy(data, &v, sizeof(v));
+        nbytes = sizeof(v);
+        break;

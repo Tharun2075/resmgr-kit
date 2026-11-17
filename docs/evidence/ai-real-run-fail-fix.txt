@@ -1,4 +1,6 @@
 # resmgr-kit AI mode: real model run showing a fail -> fix round (2026-11-17)
+# Recorded with the earlier vsensor_ai.yaml in which only SET_RATE was impl: ai; the write handler became a
+#   second AI region afterwards, see ai-real-run-two-regions.txt for that spec.
 # Spec: a temp copy of examples/vsensor_ai/vsensor_ai.yaml whose behaviour line was changed on purpose to
 #   "rejects any rate outside 1..1000 Hz with ERANGE and leaves the rate unchanged; EINVAL on short payload"
 # while the spec still says out_of_range: clamp, so the generated live tests expect clamping.

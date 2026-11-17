@@ -1,4 +1,6 @@
 # resmgr-kit AI mode: real model run on a QNX 8.0 target (2026-11-17)
+# Recorded with the earlier vsensor_ai.yaml in which only SET_RATE was impl: ai; the write handler became a
+#   second AI region afterwards, see ai-real-run-two-regions.txt for that spec.
 # Command: LLM_PROVIDER=claude-cli LLM_MODEL=sonnet resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml
 # Model: Claude Sonnet through the logged-in Claude Code CLI (no API key). Target: QNX 8.0 x86_64 in QEMU.
 # Unedited output except: absolute paths made relative, target hostname replaced. Exit code: 0.
