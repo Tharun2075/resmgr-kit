@@ -53,5 +53,5 @@ A bad spec stops at the schema check with exit 2 and an error that names the fie
 - Spec check, render and pytest run on the developer machine (any OS with Python 3.11+).
 - `qcc` runs in a Linux x86_64 host, because the QNX SDP host tools ship for Linux x86_64 and Windows. On macOS that host is a VM or container; see [HOST-SETUP](docs/HOST-SETUP.md).
 - The target is QNX 8.0 x86_64 under QEMU, reached by ssh. `make TARGET=aarch64le` cross-builds for 64-bit Arm (built and 13/13 tested on QEMU aarch64 virt, [aarch64-run.txt](docs/evidence/aarch64-run.txt)). The runner reuses a target that already answers and runs `target_start` from the config otherwise.
-- Hardware boards: not yet run; the aarch64le build targets the Raspberry Pi 4/5 BSP images; not yet run on a board.
+- Hardware boards: the aarch64le build targets the Raspberry Pi 4/5 BSP images; not yet run on a board.
 - Config comes only from `~/.config/resmgr-kit/config.toml`, environment variables or an explicit `--config`, never from the current folder, because its commands run in a shell.
