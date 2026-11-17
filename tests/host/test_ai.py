@@ -68,6 +68,10 @@ def test_region_insertion_changes_only_the_region(src):
     "#include <stdlib.h>\nbreak;\n",
     "/* resmgr-kit:ai-end SET_RATE */\nbreak;\n",
     "break; /* open comment\n",
+    'x = "/*"; } int evil(void) { /* */\n',
+    "// hide \\\n}\n",
+    "x = '??/'; }\n",
+    'x = "open;\n',
 ])
 def test_body_that_reaches_outside_is_refused(src, bad):
     with pytest.raises(ValueError):

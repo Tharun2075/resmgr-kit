@@ -87,17 +87,24 @@ def region_body(src: str, name: str) -> str:
     return src[start:end]
 
 
+# One left-to-right pass, like a C lexer: a "/*" inside a string is not a comment,
+# and a quote inside a comment is not a string.
+_C_TOKENS = re.compile(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|/\*.*?\*/|//[^\n]*', re.S)
+
+
 def _strip_c(text: str) -> str:
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-    text = re.sub(r"//[^\n]*", "", text)
-    return re.sub(r"\"(\\.|[^\"\\])*\"|'(\\.|[^'\\])*'", "\"\"", text)
+    return _C_TOKENS.sub(lambda m: '""' if m.group(0)[0] in "\"'" else " ", text)
 
 
 def check_body(body: str) -> None:
     """Refuse a body that could reach outside its region."""
     if "resmgr-kit:ai-" in body:
         raise ValueError("the body must not contain region markers")
+    if re.search(r"\\[ \t]*\n", body) or "??" in body:
+        raise ValueError("the body must not use line continuations or trigraphs")
     code = _strip_c(body)
+    if '"' in code.replace('""', "") or "'" in code:
+        raise ValueError("the body has an unterminated string or character literal")
     if re.search(r"^\s*#", code, flags=re.M):
         raise ValueError("the body must not contain preprocessor lines")
     if "/*" in code or "*/" in code:
