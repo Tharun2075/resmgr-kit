@@ -33,6 +33,7 @@ Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TAR
 
 ## Documentation
 
+- [docs/CODELAB.md](docs/CODELAB.md): your first resource manager, tested on QEMU, in 15 minutes
 - [ARCHITECTURE.md](ARCHITECTURE.md): pipeline diagram and component list
 - [docs/HOST-SETUP.md](docs/HOST-SETUP.md): Linux x86_64 and macOS host, QEMU, target image
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md): known problems and fixes
