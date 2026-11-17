@@ -1,0 +1,15 @@
+# secpol DENY test  2026-11-17T07:19:16Z  (secure-mode image, port 2223)
+$ uname -a
+QNX secpol 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+$ pidin -f an_ | grep sshd-session   # proof: types enforced
+ 1064962 system/bin/sshd-session                                                          user_root_t      
+$ ls /dev/secpolgenerate   # absent = secure mode, not open/generate
+ls: /dev/secpolgenerate: No such file or directory
+$ on -T hello_deny_t /tmp/hello
+resmgr_attach: Operation not permitted
+$ ls -l /dev/hello
+ls: /dev/hello: No such file or directory
+$ on -T hello_noattach_t /tmp/hello
+resmgr_attach: Permission denied
+$ ls -l /dev/hello
+ls: /dev/hello: No such file or directory

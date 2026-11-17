@@ -1,0 +1,15 @@
+== build (qcc in qnx-host)
+== target
+target: booted, ssh up after 12s
+== deploy
+== test
+$ uname -a
+QNX noname 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+$ ls -l /dev/hello
+crw-rw-rw-  1 root root 0,   1 2026-11-17 06:49 /dev/hello
+$ cat /dev/hello
+hello from QNX resmgr
+$ echo "resmgr-kit_week1_2026-11-17T06:49:28Z" > /dev/hello
+$ cat /dev/hello
+resmgr-kit_week1_2026-11-17T06:49:28Z
+RESULT: PASS (read back what was written)

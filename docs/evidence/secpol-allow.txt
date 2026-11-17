@@ -1,0 +1,14 @@
+# secpol ALLOW test  2026-11-17T07:19:19Z  (secure-mode image, port 2223)
+$ uname -a
+QNX secpol 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+$ on -T hello_t /tmp/hello &
+hello: /dev/hello ready
+$ pidin -f an_ | grep hello
+ 1277974 tmp/hello                                                                        hello_t          
+$ ls -l /dev/hello
+crw-rw-rw-  1 root root 0,   1 2026-11-17 07:19 /dev/hello
+$ cat /dev/hello
+hello from QNX resmgr
+$ echo allow-2026-11-17T07:19:19Z > /dev/hello
+$ cat /dev/hello
+allow-2026-11-17T07:19:19Z
