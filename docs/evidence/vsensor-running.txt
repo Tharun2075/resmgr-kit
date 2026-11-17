@@ -1,0 +1,33 @@
+# vsensor running on the QNX 8.0 x86_64 QEMU target (non-secpol image)
+# date: 2026-11-17T13:27Z; binaries from: resmgr-kit test examples/vsensor/vsensor.yaml (13 passed)
+# commands run over ssh from the host; the server is started, inspected, then stopped
+
+$ uname -a
+QNX noname 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+
+$ pidin -p vsensor -f an_
+     pid name                                                                             type             
+23248917 tmp/vsensor                                                                      -                
+
+$ pidin -p vsensor   # threads: main + dispatch thread pool
+     pid tid name                         prio STATE          Blocked                     
+23248917   1 tmp/vsensor                   10r RECEIVE        1                           
+23248917   2 tmp/vsensor                   10r RECEIVE        1                           
+23248917   3 tmp/vsensor                   10r RECEIVE        1                           
+
+$ ls -l /dev/vsensor0
+cr--r--r--  1 root root 0,   1 2026-11-17 13:27 /dev/vsensor0
+
+$ vsensor_client GET_RATE
+ok value=10
+$ vsensor_client GET_SAMPLE
+ok value=550
+
+$ slay vsensor; ls /dev/vsensor0
+ls: /dev/vsensor0: No such file or directory
+
+# The run that built these binaries, last lines of: resmgr-kit test examples/vsensor/vsensor.yaml
+- generated xml file: junit.xml -
+============================== 13 passed in 4.78s ==============================
+QNX noname 8.0.0 2026/10/30-09:10:05EDT x86pc x86_64
+junit: junit.xml

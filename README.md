@@ -8,6 +8,10 @@ Status: v0.1.0, runs end to end on QNX 8.0 (QEMU x86_64); every claim has a file
 - Toolchain: `qcc` from QNX SDP 8.0
 - Licence: Apache-2.0 (see `LICENSE`)
 
+## Why QNX, why real-time
+
+On QNX every driver and sensor service is a resource manager: a normal process that owns a `/dev` path and answers messages. That is what keeps a fault in one sensor node from taking down the system, and it is why QNX sits in cars, industrial controllers and robots. The price is boilerplate: dispatch and thread-pool setup, iofunc handlers, devctl decoding, a pulse timer, plus the security policy and image build-file lines that are easy to forget. For the `vsensor` example a 25-line YAML spec becomes 479 lines of C (server, header, client), a 131-line live test suite, and 57 lines of Makefile, build-file fragment and security policy ([line-counts.txt](docs/evidence/line-counts.txt)). The generated suite then runs against the live `/dev/vsensor0` on QNX 8.0 (`13 passed in 4.78s` in our last run, [vsensor-running.txt](docs/evidence/vsensor-running.txt) shows the running server). The [codelab](docs/CODELAB.md) takes a new developer from spec to a tested `/dev` node in about 15 minutes on a ready host. The target users are developers of sensor and actuator nodes for automotive, industrial and physical-AI (robotics) systems on QNX.
+
 ## Quick start
 
 ```sh

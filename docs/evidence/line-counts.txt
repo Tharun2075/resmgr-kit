@@ -1,0 +1,17 @@
+# Line counts: examples/vsensor/vsensor.yaml vs the files resmgr-kit gen writes from it
+# date: 2026-11-17T13:27Z; command: resmgr-kit gen examples/vsensor/vsensor.yaml -o build/vsensor, then wc -l
+
+$ wc -l examples/vsensor/vsensor.yaml
+      25 examples/vsensor/vsensor.yaml
+
+$ wc -l <generated files>
+     335 vsensor.c
+      19 vsensor.h
+     125 vsensor_client.c
+      23 Makefile
+      13 vsensor.build
+      21 vsensor.secpol
+     131 tests/test_vsensor.py
+     667 total
+
+# C (vsensor.c + vsensor.h + vsensor_client.c): 479 lines; tests: 131 lines; Makefile + build fragment + secpol: 57 lines
