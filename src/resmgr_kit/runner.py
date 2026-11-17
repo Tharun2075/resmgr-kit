@@ -13,6 +13,12 @@ in the current folder is never read on its own, because its commands run in a sh
   ssh_insecure_local  RESMGR_KIT_SSH_INSECURE_LOCAL  skip host-key checks (default true, for the
                  throw-away local QEMU target whose key changes on every image rebuild); set it
                  to false for any other target so ssh checks ~/.ssh/known_hosts
+  target_secpol  RESMGR_KIT_TARGET_SECPOL  true = the target runs secpol in secure mode: merge the
+                 generated <name>.secpol into secpol_base, compile it, push it with secpolpush and
+                 start the server with `on -S <pushed file> -T <name>_t` (also: `resmgr-kit test --secpol`)
+  secpol_base    RESMGR_KIT_SECPOL_BASE    host file: the full system policy the target booted with
+  secpol_compile RESMGR_KIT_SECPOL_COMPILE shell command, {src} and {out} are shell-quoted paths
+  secpol_launcher RESMGR_KIT_SECPOL_LAUNCHER type of the ssh login that starts the server
 """
 
 from __future__ import annotations
@@ -36,7 +42,13 @@ DEFAULTS = {
     "target_start": "",
     "remote_dir": "/tmp",
     "ssh_insecure_local": True,
+    "target_secpol": False,
+    "secpol_base": "",
+    "secpol_compile": "secpolcompile -m -o {out} {src}",
+    "secpol_launcher": "user_root_t",
 }
+
+BOOL_KEYS = ("ssh_insecure_local", "target_secpol")
 
 
 class RunError(Exception):
@@ -56,8 +68,9 @@ def load_config(extra: str | None = None) -> dict:
         if os.environ.get(env):
             cfg[key] = os.environ[env]
     cfg["port"] = int(cfg["port"])
-    if isinstance(cfg["ssh_insecure_local"], str):
-        cfg["ssh_insecure_local"] = cfg["ssh_insecure_local"].strip().lower() not in ("0", "false", "no", "off")
+    for key in BOOL_KEYS:
+        if isinstance(cfg[key], str):
+            cfg[key] = cfg[key].strip().lower() not in ("0", "false", "no", "off", "")
     return cfg
 
 
@@ -117,8 +130,27 @@ class Target:
                  stdin=local.read_bytes(), timeout=60)
 
 
-def test(spec_path: str, outdir: str | None = None, config: str | None = None) -> int:
+def merge_policy(spec: dict, out: Path, cfg: dict) -> Path:
+    """Write <name>.policy: the target's system policy, the generated <name>.secpol and
+    the launcher grants that let the ssh login start the server as <name>_t and talk to it."""
+    name = spec["name"]
+    base = Path(os.path.expanduser(cfg["secpol_base"])) if cfg["secpol_base"] else None
+    if not base or not base.is_file():
+        raise RunError("target_secpol is on but secpol_base is not a policy file: "
+                       f"{cfg['secpol_base'] or '(unset)'}")
+    launcher = cfg["secpol_launcher"]
+    src = out / f"{name}.policy"
+    src.write_text(base.read_text().rstrip() + "\n\n# --- added by resmgr-kit test --secpol ---\n"
+                   + (out / f"{name}.secpol").read_text().rstrip() + "\n\n"
+                   + f"allow {launcher} self:ability {{ settypeid:{name}_t channel_connect:{name}_t }};\n")
+    return src
+
+
+def test(spec_path: str, outdir: str | None = None, config: str | None = None,
+         secpol: bool = False) -> int:
     cfg = load_config(config)
+    if secpol:
+        cfg["target_secpol"] = True
     spec = specmod.load(spec_path)
     out = Path(outdir or Path("build") / spec["name"]).resolve()
 
@@ -156,8 +188,25 @@ def check(spec: dict, out: Path, cfg: dict) -> tuple[int, str]:
     tgt.put(out / name, server)
     tgt.put(out / (name + "_client"), client)
 
+    launch = ""
+    if cfg["target_secpol"]:
+        step("secpol")
+        src, binf = merge_policy(spec, out, cfg), out / f"{name}.secpol.bin"
+        res = subprocess.run(cfg["secpol_compile"].replace("{src}", shlex.quote(str(src)))
+                             .replace("{out}", shlex.quote(str(binf))), shell=True,
+                             capture_output=True, text=True, timeout=120)
+        if res.returncode != 0 or not binf.is_file():
+            raise RunError("secpolcompile failed:\n" + _tail(res.stdout + res.stderr))
+        tgt.put(binf, f"{rdir}/{name}.secpol.bin")
+        rbin = shlex.quote(f"{rdir}/{name}.secpol.bin")
+        tgt.run(f"secpolpush {rbin}")
+        print(f"pushed {binf.name} (system policy + {name}.secpol)")
+        # on reads type names from /proc/boot/secpol.bin unless -S names the pushed file
+        launch = f"on -S {rbin} -T {name}_t "
+
     step("start")
-    tgt.run(f"{shlex.quote(server)} </dev/null >{shlex.quote(log)} 2>&1 &", timeout=15)
+    print(f"{launch}{server}")
+    tgt.run(f"{launch}{shlex.quote(server)} </dev/null >{shlex.quote(log)} 2>&1 &", timeout=15)
     deadline = time.monotonic() + 5
     while not tgt.run(f"test -e {shlex.quote(path)}", check=False).returncode == 0:
         if time.monotonic() > deadline:
@@ -165,6 +214,11 @@ def check(spec: dict, out: Path, cfg: dict) -> tuple[int, str]:
             raise RunError(f"{path} did not appear within 5 s; server log:\n{log_tail}")
         time.sleep(0.25)
     print(f"{path} is up")
+    if launch:
+        ps = tgt.run("pidin -f an_", check=False).stdout.decode().splitlines()
+        print("\n".join(l for l in ps[:1] + [l for l in ps if name in l]))
+        tid = tgt.run(f"secpol -i {rbin} -t {name}_t", check=False).stdout.decode().strip()
+        print(f"type {name}_t = id {tid} in the pushed policy")
 
     lines: list[str] = []
     try:

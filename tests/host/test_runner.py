@@ -49,3 +49,28 @@ def test_ssh_checks_host_key_when_insecure_local_is_off(no_user_config, monkeypa
     assert "StrictHostKeyChecking=no" not in args
     assert "UserKnownHostsFile=/dev/null" not in args
     assert "BatchMode=yes" in args
+
+
+def test_target_secpol_is_off_by_default_and_parsed_as_bool(no_user_config, monkeypatch):
+    assert runner.load_config()["target_secpol"] is False
+    monkeypatch.setenv("RESMGR_KIT_TARGET_SECPOL", "off")
+    assert runner.load_config()["target_secpol"] is False
+    monkeypatch.setenv("RESMGR_KIT_TARGET_SECPOL", "yes")
+    assert runner.load_config()["target_secpol"] is True
+
+
+def test_merge_policy_adds_snippet_and_launcher_grant(no_user_config):
+    base = no_user_config / "base.policy"
+    base.write_text("type user_root_t;\n")
+    out = no_user_config / "out"
+    out.mkdir()
+    (out / "estop.secpol").write_text("type estop_t;\n")
+    cfg = dict(runner.DEFAULTS, secpol_base=str(base))
+    text = runner.merge_policy({"name": "estop"}, out, cfg).read_text()
+    assert text.index("type user_root_t;") < text.index("type estop_t;")
+    assert "allow user_root_t self:ability { settypeid:estop_t channel_connect:estop_t };" in text
+
+
+def test_merge_policy_needs_a_base_file(no_user_config):
+    with pytest.raises(runner.RunError, match="secpol_base"):
+        runner.merge_policy({"name": "estop"}, no_user_config, dict(runner.DEFAULTS))

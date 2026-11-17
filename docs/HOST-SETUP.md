@@ -56,3 +56,17 @@ Write `~/.config/resmgr-kit/config.toml` as shown in the [README](../README.md),
 ```
 
 A good run prints `uname -a` with `QNX` and `8.0`, all tests passed, and writes `junit.xml`. Sample output: [hello-test.txt](evidence/hello-test.txt).
+
+## F. Secure-mode target (optional, for `test --secpol`)
+
+`mkqnximage --secpol=...` compiles the boot policy without `-m`, so it cannot be replaced at run time and `secpolpush` fails with EPERM. Build the image with a mutable policy by putting a small wrapper first in `PATH`:
+
+```sh
+mkdir -p ~/secpol-shim
+printf '#!/bin/sh\nexec %s -m "$@"\n' "$(command -v secpolcompile)" > ~/secpol-shim/secpolcompile
+chmod +x ~/secpol-shim/secpolcompile
+PATH=~/secpol-shim:$PATH mkqnximage --type=qemu --arch=x86_64 --ssh-ident=$HOME/.ssh/id_qnx_target.pub \
+    --secpol=$PWD/policy.txt
+```
+
+`policy.txt` must also contain `allow user_root_t self:ability { mac_policy };` so the ssh login may push; `tools/secpol/qemu-x86_64-base.policy` has it. Then set `secpol_base` to that file, `secpol_compile` to a command that runs `secpolcompile -m -o {out} {src}` with the SDK environment, and run `resmgr-kit test --secpol <spec>`.

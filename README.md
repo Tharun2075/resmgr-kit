@@ -36,7 +36,11 @@ ssh_insecure_local = true                # default; skips host-key checks for th
 
 `ssh_insecure_local = true` (the default) turns off ssh host-key checking, because the local QEMU image gets a new host key on every rebuild. Set it to `false` for any target that is not a throw-away local VM; ssh then checks `~/.ssh/known_hosts`.
 
-Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TARGET`, `RESMGR_KIT_PORT`, `RESMGR_KIT_SSH_KEY`, `RESMGR_KIT_TARGET_START`, `RESMGR_KIT_REMOTE_DIR`, `RESMGR_KIT_SSH_INSECURE_LOCAL`.
+### Secure-mode targets (secpol)
+
+`resmgr-kit test --secpol` (or `target_secpol = true`) is for a target booted with secpol in secure mode. It merges the generated `<name>.secpol` into `secpol_base` (the system policy the image was built with), compiles it with `secpol_compile` on the host, pushes it with `secpolpush` and starts the server with `on -S <pushed file> -T <name>_t`. The image must be built with a mutable policy (`secpolcompile -m`) and the login type needs the `mac_policy` ability; see docs/HOST-SETUP.md. `tools/secpol/qemu-x86_64-base.policy` is the base for the x86_64 QEMU image. Status: on that image the generated policy is pushed and enforced and 13 of 15 estop tests pass; the 2 ARM_NOTIFY pulse tests fail with EPERM (docs/evidence/secpol-test.txt), an open item.
+
+Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TARGET`, `RESMGR_KIT_PORT`, `RESMGR_KIT_SSH_KEY`, `RESMGR_KIT_TARGET_START`, `RESMGR_KIT_REMOTE_DIR`, `RESMGR_KIT_SSH_INSECURE_LOCAL`, `RESMGR_KIT_TARGET_SECPOL`, `RESMGR_KIT_SECPOL_BASE`, `RESMGR_KIT_SECPOL_COMPILE`, `RESMGR_KIT_SECPOL_LAUNCHER`.
 
 ## Targets
 

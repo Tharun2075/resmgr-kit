@@ -22,6 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("spec")
     t.add_argument("-o", "--outdir", help="output folder (default: build/<name>)")
     t.add_argument("-c", "--config", help="extra settings file (TOML) read after the user config")
+    t.add_argument("--secpol", action="store_true",
+                   help="secure-mode target: push the generated policy and start with on -T <name>_t")
 
     a = sub.add_parser("ai", help="let a model write the impl: ai regions, tested live on the target")
     a.add_argument("spec")
@@ -45,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
             return ai.run(args.spec, args.outdir, args.config, args.max_iter, args.dry_run)
         if args.cmd == "sh":
             return runner.shell(args.command, args.config)
-        return runner.test(args.spec, args.outdir, args.config)
+        return runner.test(args.spec, args.outdir, args.config, args.secpol)
     except specmod.SpecError as e:
         print(f"resmgr-kit: {args.spec}: {e}", file=sys.stderr)
         return 2
