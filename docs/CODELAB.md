@@ -7,7 +7,8 @@ to a QNX 8.0 target running in QEMU, starts it and runs a generated test suite
 against it from your machine. You finish with a green test run on the target.
 
 Every command below was run in this order on a macOS host against the QNX 8.0
-x86_64 QEMU target. The outputs are real; only local paths are shortened.
+x86_64 QEMU target. The outputs are real; only local paths are shortened, and
+the pytest header and path lines are trimmed. Times vary from run to run.
 
 ## Before you start (prerequisites)
 
@@ -31,6 +32,8 @@ python3 -m venv .venv && .venv/bin/pip install -q -e .
 .venv/bin/resmgr-kit --version
 ```
 
+pip may print a "new release of pip is available" notice; it is harmless.
+
 ```text
 Cloning into 'resmgr-kit'...
 resmgr-kit 0.1.0
@@ -38,10 +41,29 @@ resmgr-kit 0.1.0
 
 ## Step 2: Check you can reach the target (1 min)
 
-The settings file is yours, not part of the repo. `build_command` is any shell
-command that runs `make` in `{dir}` with the QNX environment sourced; here it
-runs inside a Linux VM that holds the SDP. `resmgr-kit sh` runs one command on
-the target with these settings.
+The settings file is yours, not part of the repo, so create it first. Change
+the values to match your host (this sample uses generic placeholders):
+
+```bash
+mkdir -p ~/.config/resmgr-kit
+cat > ~/.config/resmgr-kit/config.toml <<'EOF'
+# Local settings for resmgr-kit test (not part of the repo).
+build_command = "source ~/qnx800/qnxsdp-env.sh && make -C {dir}"
+target = "root@127.0.0.1"
+port = 2222
+ssh_key = "~/.ssh/qnx_week1"
+target_start = "<path to your QEMU start script> start"
+EOF
+```
+
+`build_command` is any shell command that runs `make` in `{dir}` with the QNX
+environment sourced. `ssh_key` is the key HOST-SETUP.md created; replace it with
+yours. `target_start` must boot the QEMU target and exit 0 once ssh answers; it
+is optional if QEMU is already running (leave the line out). `resmgr-kit sh` runs
+one command on the target with these settings.
+
+Check it (the sample output below is from a setup whose `build_command` runs
+inside a Linux VM that holds the SDP, so your `build_command` line will differ):
 
 ```bash
 cat ~/.config/resmgr-kit/config.toml
@@ -87,6 +109,8 @@ image fragment, a security policy snippet and a pytest suite.
 
 Your device keeps one number, `count`. A timer adds 1 every 100 ms, and a read
 prints it.
+
+Stay in the `resmgr-kit` folder (`mydev` is created inside the repo).
 
 ```bash
 mkdir -p mydev
@@ -228,14 +252,17 @@ ls: /dev/counter0: No such file or directory
 counter0 is gone
 ```
 
-Two seconds of 100 ms ticks gave 20. `RESET 0` set it to 0, and a second later
-`GET_COUNT` read about 10 (the reply includes ssh time). After `slay` the path
+Two seconds of 100 ms ticks gave about 20 (yours may differ a little). `RESET 0`
+set it to 0, and a second later `GET_COUNT` read about 10 (10 to 12 is normal;
+the reply includes ssh time). After `slay` the path
 is gone, because the path space entry belongs to the process.
 
 ## Step 9: Turn the security policy on (2 min to read)
 
 QNX 8.0 can run with a security policy (secpol) that says which process types
 may attach which paths. The generator wrote a snippet for your device:
+
+The real file starts with a few generated comment lines, omitted here.
 
 ```bash
 cat build/counter/counter.secpol
