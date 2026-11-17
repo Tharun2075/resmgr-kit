@@ -1,4 +1,4 @@
-"""Command line: resmgr-kit gen | test | ai."""
+"""Command line: resmgr-kit gen | test | ai | sh."""
 
 from __future__ import annotations
 
@@ -29,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("-c", "--config", help="extra settings file (TOML) read after the user config")
     a.add_argument("--max-iter", type=int, default=3, help="model rounds before giving up (default 3)")
     a.add_argument("--dry-run", action="store_true", help="print the prompt and stop; no network")
+    s = sub.add_parser("sh", help="run one shell command on the configured target over ssh")
+    s.add_argument("command", help="command line, run by the target shell")
+    s.add_argument("-c", "--config", help="extra settings file (TOML) read after the user config")
 
     args = ap.parse_args(argv)
     try:
@@ -40,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.cmd == "ai":
             return ai.run(args.spec, args.outdir, args.config, args.max_iter, args.dry_run)
+        if args.cmd == "sh":
+            return runner.shell(args.command, args.config)
         return runner.test(args.spec, args.outdir, args.config)
     except specmod.SpecError as e:
         print(f"resmgr-kit: {args.spec}: {e}", file=sys.stderr)

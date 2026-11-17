@@ -179,3 +179,9 @@ def check(spec: dict, out: Path, cfg: dict) -> tuple[int, str]:
         step("stop")
         tgt.run(f"slay -f {shlex.quote(name)} >/dev/null 2>&1; true", check=False)
     return (0 if rc == 0 else 1), "".join(lines)
+
+
+def shell(command: str, config: str | None = None) -> int:
+    """Run one command on the target with the configured ssh settings; return its exit code."""
+    cfg = load_config(config)
+    return subprocess.call(ssh_args(cfg) + [command])
