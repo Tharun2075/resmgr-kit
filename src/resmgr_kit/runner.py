@@ -10,6 +10,9 @@ in the current folder is never read on its own, because its commands run in a sh
   ssh_key        RESMGR_KIT_SSH_KEY private key file (optional)
   target_start   RESMGR_KIT_TARGET_START  command that boots the target when ssh fails (optional)
   remote_dir     RESMGR_KIT_REMOTE_DIR    where binaries go on the target
+  ssh_insecure_local  RESMGR_KIT_SSH_INSECURE_LOCAL  skip host-key checks (default true, for the
+                 throw-away local QEMU target whose key changes on every image rebuild); set it
+                 to false for any other target so ssh checks ~/.ssh/known_hosts
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ DEFAULTS = {
     "ssh_key": "",
     "target_start": "",
     "remote_dir": "/tmp",
+    "ssh_insecure_local": True,
 }
 
 
@@ -52,6 +56,8 @@ def load_config(extra: str | None = None) -> dict:
         if os.environ.get(env):
             cfg[key] = os.environ[env]
     cfg["port"] = int(cfg["port"])
+    if isinstance(cfg["ssh_insecure_local"], str):
+        cfg["ssh_insecure_local"] = cfg["ssh_insecure_local"].strip().lower() not in ("0", "false", "no", "off")
     return cfg
 
 
@@ -59,8 +65,10 @@ def ssh_args(cfg: dict) -> list[str]:
     args = ["ssh", "-p", str(cfg["port"])]
     if cfg["ssh_key"]:
         args += ["-i", os.path.expanduser(cfg["ssh_key"])]
-    for opt in ("StrictHostKeyChecking=no", "UserKnownHostsFile=/dev/null", "LogLevel=ERROR",
-                "ConnectTimeout=5", "BatchMode=yes"):
+    opts = ["LogLevel=ERROR", "ConnectTimeout=5", "BatchMode=yes"]
+    if cfg.get("ssh_insecure_local", True):
+        opts = ["StrictHostKeyChecking=no", "UserKnownHostsFile=/dev/null"] + opts
+    for opt in opts:
         args += ["-o", opt]
     return args + [cfg["target"]]
 

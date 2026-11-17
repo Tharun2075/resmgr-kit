@@ -36,3 +36,16 @@ def test_build_command_with_literal_braces_runs(no_user_config, monkeypatch):
     example = next((Path(__file__).parents[2] / "examples").glob("*/*.yaml"))
     with pytest.raises(runner.RunError, match="did not produce"):
         runner.test(str(example), str(no_user_config / "out"))
+
+
+def test_ssh_skips_host_key_check_by_default(no_user_config):
+    args = runner.ssh_args(runner.load_config())
+    assert "StrictHostKeyChecking=no" in args
+
+
+def test_ssh_checks_host_key_when_insecure_local_is_off(no_user_config, monkeypatch):
+    monkeypatch.setenv("RESMGR_KIT_SSH_INSECURE_LOCAL", "false")
+    args = runner.ssh_args(runner.load_config())
+    assert "StrictHostKeyChecking=no" not in args
+    assert "UserKnownHostsFile=/dev/null" not in args
+    assert "BatchMode=yes" in args

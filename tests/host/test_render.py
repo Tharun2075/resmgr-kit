@@ -87,3 +87,9 @@ def test_timer_with_fixed_period():
     })
     c = render.render(spec)["tick.c"]
     assert "100ULL * 1000000ULL" in c and "timer_create" in c
+
+
+
+def test_makefile_offers_aarch64le_target(example):
+    mk = render.render(specmod.load(example), example.name)["Makefile"]
+    assert "TARGET ?= x86_64" in mk and "aarch64le" in mk and "-Vgcc_nto$(ARCH)" in mk

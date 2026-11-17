@@ -2,9 +2,9 @@
 
 A host tool that turns a short YAML spec into a QNX 8.0 resource manager in C, then builds it with `qcc`, boots QNX 8.0 in QEMU, deploys it and runs a generated test suite against the live `/dev` path.
 
-Status: work in progress. Project created in November 2026 for the QNX Global Hackathon 2026.
+Status: v0.1.0, runs end to end on QNX 8.0 (QEMU x86_64); every claim has a file under [docs/evidence/](docs/evidence/). Project created in November 2026 for the QNX Global Hackathon 2026.
 
-- Target: QNX 8.0 on QEMU x86_64
+- Target: QNX 8.0 on QEMU x86_64 (aarch64le builds too, see Targets)
 - Toolchain: `qcc` from QNX SDP 8.0
 - Licence: Apache-2.0 (see `LICENSE`)
 
@@ -27,9 +27,19 @@ target = "root@127.0.0.1"
 port = 2222
 ssh_key = "~/.ssh/id_qnx_target"
 target_start = "./start-target.sh start" # run when ssh does not answer
+ssh_insecure_local = true                # default; skips host-key checks for the local QEMU target
 ```
 
-Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TARGET`, `RESMGR_KIT_PORT`, `RESMGR_KIT_SSH_KEY`, `RESMGR_KIT_TARGET_START`, `RESMGR_KIT_REMOTE_DIR`.
+`ssh_insecure_local = true` (the default) turns off ssh host-key checking, because the local QEMU image gets a new host key on every rebuild. Set it to `false` for any target that is not a throw-away local VM; ssh then checks `~/.ssh/known_hosts`.
+
+Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TARGET`, `RESMGR_KIT_PORT`, `RESMGR_KIT_SSH_KEY`, `RESMGR_KIT_TARGET_START`, `RESMGR_KIT_REMOTE_DIR`, `RESMGR_KIT_SSH_INSECURE_LOCAL`.
+
+## Targets
+
+| Target | Build | State | Evidence |
+|---|---|---|---|
+| x86_64 (QEMU) | `make` | built, run and tested live on QNX 8.0 | [docs/evidence/](docs/evidence/) |
+| aarch64le (64-bit Arm, e.g. Raspberry Pi 4/5) | `make TARGET=aarch64le` | builds, not yet run on aarch64 | [aarch64-build.txt](docs/evidence/aarch64-build.txt) |
 
 ## Documentation
 

@@ -18,7 +18,7 @@ Tick a line only after running its command and reading the output. Save outputs 
 
 ## Submission form
 
-- [ ] T6 Video under 3:00 (`yt-dlp --get-duration <url>`), public, plays logged out, shows the QEMU console with `QNX Neutrino 8.0` and the generated `/dev` path working, no music, no third-party logos.
+- [ ] T6 Video under 3:00 (`yt-dlp --get-duration <url>`), public, plays logged out, shows the QEMU console with `uname -a` printing `QNX noname 8.0.0 ... x86pc x86_64` and the generated `/dev` path working, no music, no third-party logos.
 - [ ] T7 Category is exactly "Developer Tooling & Host Tools"; the description says it is a host tool that produces and tests QNX 8.0 software.
 - [ ] T8 Codelab: a fresh person on a clean machine follows the codelab URL alone and reaches the final green test in under 30 minutes; the URL is in the Best Codelab field.
 

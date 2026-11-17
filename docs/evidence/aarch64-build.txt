@@ -1,0 +1,17 @@
+# aarch64le cross-build of examples/vsensor (builds, not yet run on aarch64)
+# date: 2026-11-17T13:25Z; host: Linux x86_64 VM with QNX SDP 8.0 sourced
+
+$ resmgr-kit gen examples/vsensor/vsensor.yaml -o build/vsensor-a64
+$ make -C build/vsensor-a64 TARGET=aarch64le
+qcc -Vgcc_ntoaarch64le -Wall -O2 -o vsensor vsensor.c
+qcc -Vgcc_ntoaarch64le -Wall -O2 -o vsensor_client vsensor_client.c
+
+$ file vsensor vsensor_client
+vsensor:        ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /usr/lib/ldqnx-64.so.2, BuildID[md5/uuid]=4446bfc27f376acf8a44a13b27ecf7a0, with debug_info, not stripped
+vsensor_client: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /usr/lib/ldqnx-64.so.2, BuildID[md5/uuid]=7f85f0c34d53950536797eaac313932e, with debug_info, not stripped
+
+$ ntoaarch64-readelf -h vsensor | grep -E "Class|Machine"
+  Class:                             ELF64
+  Machine:                           AArch64
+
+# Not run on aarch64 hardware or QEMU aarch64 yet; the live tests in this repo ran on QNX 8.0 x86_64 under QEMU.

@@ -43,7 +43,7 @@ NO_KEY = ("LLM_API_KEY is not set, so `resmgr-kit ai` cannot call a model. Set L
 BEGIN = "/* resmgr-kit:ai-begin {name} */"
 END = "/* resmgr-kit:ai-end {name} */"
 
-# QNX 8.0 resource manager rules the body must keep (see research notes, PITFALLS-TECH 15-19).
+# QNX 8.0 resource manager rules the body must keep.
 RULES = """\
 - Write C11 for QNX SDP 8.0 (qcc). Output only the statements that go between the markers,
   in one ```c fenced block. No #include, no #define, no new functions, no marker comments.
