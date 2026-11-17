@@ -1,5 +1,10 @@
 # Emergency-stop latch: writing "1" trips it, a read returns the state, and
 # clients register with ARM_NOTIFY to get a pulse when it trips.
+# Why a pulse, not polling: a client that polls read() at 10 ms sees a trip up to
+# one period late and burns a wakeup every period; the pulse is sent by the
+# server (MsgDeliverEvent) in the same write that trips the latch, so the client
+# sleeps in MsgReceivePulse until then. For what a 10 ms pulse period looks like on our
+# QEMU target (method, not real-time evidence) see docs/evidence/latency.md.
 name: estop
 path: /dev/estop0
 description: Emergency-stop latch with trip notification

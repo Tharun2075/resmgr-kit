@@ -1,8 +1,8 @@
 # resmgr-kit
 
-A host tool that turns a short YAML spec into a QNX 8.0 resource manager in C, then builds it with `qcc`, boots QNX 8.0 in QEMU, deploys it and runs a generated test suite against the live `/dev` path.
+A host tool that turns a short YAML spec into a QNX 8.0 resource manager in C, then builds it with `qcc`, boots QNX 8.0 in QEMU (x86_64 or aarch64), deploys it and runs a generated test suite against the live `/dev` path.
 
-Status: v0.1.0, runs end to end on QNX 8.0 (QEMU x86_64); every claim has a file under [docs/evidence/](docs/evidence/). Project created in November 2026 for the QNX Global Hackathon 2026.
+Status: v0.1.0, runs end to end on QNX 8.0 (QEMU x86_64 and aarch64); every claim has a file under [docs/evidence/](docs/evidence/). Project created in November 2026 for the QNX Global Hackathon 2026.
 
 - Target: QNX 8.0 on QEMU x86_64 and QEMU aarch64 (virt), see Targets
 - Toolchain: `qcc` from QNX SDP 8.0

@@ -47,6 +47,17 @@ resmgr-kit 0.1.0
 
 ## Step 2: Check you can reach the target (1 min)
 
+No target yet? One script builds the QNX 8.0 image with `mkqnximage`, boots it in
+QEMU and waits until ssh answers on port 2222 (a few minutes the first time):
+
+```bash
+tools/make-target.sh build && tools/make-target.sh start   # on macOS: QNX_RUN="orb run -m qnx-host" for build
+```
+
+Then use `ssh_key = "~/.ssh/id_qnx_target"` (the key it makes) and
+`target_start = "tools/make-target.sh start"` below. Sample run:
+[make-target.txt](evidence/make-target.txt).
+
 The settings file is yours, not part of the repo, so create it first. Change
 the values to match your host (this sample uses generic placeholders):
 

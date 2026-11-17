@@ -7,7 +7,7 @@ flowchart LR
     A[spec.yaml] --> B[schema check<br/>schema.json + cross-field rules]
     B --> C[Jinja render<br/>templates/*.j2]
     C --> D[qcc build<br/>Linux x86_64 host, QNX SDP 8.0]
-    D --> E[scp over ssh<br/>to QEMU x86_64 QNX 8.0]
+    D --> E[scp over ssh<br/>to QEMU x86_64 or aarch64 QNX 8.0]
     E --> F[start resource manager<br/>on target]
     F --> G[pytest on the host<br/>live tests over ssh]
     G --> H[junit.xml + uname -a]
@@ -52,5 +52,5 @@ A bad spec stops at the schema check with exit 2 and an error that names the fie
 
 - Spec check, render and pytest run on the developer machine (any OS with Python 3.11+).
 - `qcc` runs in a Linux x86_64 host, because the QNX SDP host tools ship for Linux x86_64 and Windows. On macOS that host is a VM or container; see [HOST-SETUP](docs/HOST-SETUP.md).
-- The target is QNX 8.0 x86_64 under QEMU, reached by ssh. `make TARGET=aarch64le` cross-builds for 64-bit Arm (built, not yet run there). The runner reuses a target that already answers and runs `target_start` from the config otherwise.
+- The target is QNX 8.0 x86_64 under QEMU, reached by ssh. `make TARGET=aarch64le` cross-builds for 64-bit Arm (built and 13/13 tested on QEMU aarch64 virt, [aarch64-run.txt](docs/evidence/aarch64-run.txt)). The runner reuses a target that already answers and runs `target_start` from the config otherwise.
 - Config comes only from `~/.config/resmgr-kit/config.toml`, environment variables or an explicit `--config`, never from the current folder, because its commands run in a shell.
