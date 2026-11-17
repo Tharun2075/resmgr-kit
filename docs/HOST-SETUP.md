@@ -60,6 +60,15 @@ target_start = "tools/make-target.sh start"
 
 Sample run: [make-target.txt](evidence/make-target.txt).
 
+### aarch64le on QEMU virt
+
+```sh
+ARCH=aarch64le PORT=2226 IMG_DIR=~/qnx-target-a64 tools/make-target.sh build
+ARCH=aarch64le PORT=2226 IMG_DIR=~/qnx-target-a64 tools/make-target.sh start
+```
+
+The SDP has no aarch64 `devb-virtio`, so the script swaps in local `mkqnximage` snippets: QEMU loads `disk-qemu` into guest RAM at 0x80000000, `startup-qemu-virt` reserves that range and `devb-ram` serves it as the disk. Changes on the target are lost at power-off. QEMU `virt` gives virtio slots from the top down, so a 1 MB dummy disk (`slot.img`) goes first to put the network and entropy devices where the image looks for them. Booting to ssh took 13 seconds under TCG. Sample run: [aarch64-run.txt](evidence/aarch64-run.txt).
+
 ## E. Config and first run
 
 Write `~/.config/resmgr-kit/config.toml` as shown in the [README](../README.md), then:

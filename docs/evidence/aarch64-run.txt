@@ -1,0 +1,63 @@
+# aarch64le run: tools/make-target.sh with ARCH=aarch64le (QEMU virt board, TCG, cortex-a57), then resmgr-kit test on it
+# date: 2026-11-17T15:00Z; macOS host + OrbStack build machine, port 2226
+$ ARCH=aarch64le QNX_RUN="orb run -m qnx-host" PORT=2226 tools/make-target.sh build
+make-target: mkqnximage in ~/r4-a64 (a few minutes)
+make-target: image in <IMG_DIR>
+# (note, not tool output) ls -l <IMG_DIR>: ifs.bin 9816540 B, disk-qemu 324747776 B; build wall time 14 s
+$ ARCH=aarch64le PORT=2226 tools/make-target.sh start
+target: booted, ssh up on port 2226 after 13s
+$ ARCH=aarch64le PORT=2226 tools/make-target.sh ssh uname -a
+QNX noname 8.0.0 2026/10/30-09:09:47EDT QEMU_virt aarch64le
+$ ARCH=aarch64le PORT=2226 tools/make-target.sh ssh df -h   # disk-qemu served from RAM by devb-ram
+ifs                         9.1M      9.1M         0     100%  /               
+/dev/hd0t179                 43M      3.8M       39M      10%  /data/          
+/dev/hd0t178                257M       63M      194M      25%  /system/        
+/dev/hd0t177                9.7M      9.6M       36K     100%  /boot/          
+/dev/hd0                    310M      310M         0     100%                  
+# serial console, startup lines
+---> Starting slogger2
+---> Starting PCI Services
+---> Starting fsevmgr
+# ---> Starting devb
+---> Starting Networking
+---> Starting sshd
+---> Starting misc
+Startup complete
+QNX noname 8.0.0 2026/10/30-09:09:47EDT QEMU_virt aarch64le
+$ resmgr-kit test examples/vsensor/vsensor.yaml -c a64.toml   # a64.toml: port = 2226; build_command runs make TARGET=aarch64le on the build machine
+== gen examples/vsensor/vsensor.yaml -> build/vsensor
+== build
+qcc -Vgcc_ntoaarch64le -Wall -O2 -o vsensor vsensor.c
+qcc -Vgcc_ntoaarch64le -Wall -O2 -o vsensor_client vsensor_client.c
+== target
+target: reachable
+== deploy
+== start
+/tmp/vsensor
+/dev/vsensor0 is up
+== pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.11.17, pytest-9.2.0, pluggy-1.7.0 -- .venv/bin/python
+rootdir: build/vsensor
+collecting ... collected 13 items
+
+tests/test_vsensor.py::test_path_exists PASSED                           [  7%]
+tests/test_vsensor.py::test_read_format PASSED                           [ 15%]
+tests/test_vsensor.py::test_read_values_in_range PASSED                  [ 23%]
+tests/test_vsensor.py::test_read_is_bounded PASSED                       [ 30%]
+tests/test_vsensor.py::test_timer_updates_state PASSED                   [ 38%]
+tests/test_vsensor.py::test_set_rate_round_trip PASSED                   [ 46%]
+tests/test_vsensor.py::test_set_rate_above_max PASSED                    [ 53%]
+tests/test_vsensor.py::test_set_rate_below_min PASSED                    [ 61%]
+tests/test_vsensor.py::test_get_rate_get PASSED                          [ 69%]
+tests/test_vsensor.py::test_get_sample_get PASSED                        [ 76%]
+tests/test_vsensor.py::test_undersized_devctl_is_einval PASSED           [ 84%]
+tests/test_vsensor.py::test_unknown_devctl_is_enotty PASSED              [ 92%]
+tests/test_vsensor.py::test_write_is_refused PASSED                      [100%]
+
+- generated xml file: build/vsensor/junit.xml -
+============================== 13 passed in 4.93s ==============================
+== target info
+QNX noname 8.0.0 2026/10/30-09:09:47EDT QEMU_virt aarch64le
+junit: build/vsensor/junit.xml
+== stop
