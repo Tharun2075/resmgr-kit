@@ -70,14 +70,19 @@ On green the result is in `build/<name>/` (bodies also in `build/<name>/ai_regio
 export LLM_API_KEY=...                 # never commit it
 resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml --max-iter 3
 resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml --dry-run   # print the prompt, no network
+
+# no API key: use the Claude Code CLI you are already logged in to
+LLM_PROVIDER=claude-cli resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml
 ```
 
 | Variable | Meaning |
 | --- | --- |
-| `LLM_PROVIDER` | `anthropic` (default) or `openai-compatible` |
-| `LLM_API_KEY` | required; without it `resmgr-kit ai` says so and exits 2 (gen and test do not need it) |
+| `LLM_PROVIDER` | `anthropic` (default), `openai-compatible` or `claude-cli` |
+| `LLM_API_KEY` | required for `anthropic` and `openai-compatible`; without it `resmgr-kit ai` says so and exits 2 (gen and test do not need it) |
 | `LLM_MODEL` | default `claude-sonnet-5-5` for anthropic; required for openai-compatible |
 | `LLM_BASE_URL` | default `https://api.anthropic.com`; required for openai-compatible (for example a local server's `/v1`) |
+
+`claude-cli` sends the same prompt on stdin to `claude -p --output-format text` with its tools turned off, so it uses the Claude Code CLI's own login and needs no key; resmgr-kit adds no network code for it. `LLM_MODEL`, if set, is passed as `--model` (for example `sonnet`); otherwise the CLI's default model is used. Without a `claude` binary on `PATH` it says so and exits 2. A full transcript of a real run on the QNX target is in [docs/evidence/ai-real-run.txt](docs/evidence/ai-real-run.txt).
 
 AI output is reviewed and tested; no AI code runs without passing on target. No AI part is a safety component: AI mode writes demo handlers for a prototype, and the generated live tests are the only bar it has to clear.
 

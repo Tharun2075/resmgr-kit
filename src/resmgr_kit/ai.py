@@ -8,10 +8,13 @@ a reply that would change it, or that carries a marker, is refused.
 
 Provider settings come from the environment only:
 
-  LLM_PROVIDER  anthropic (default) or openai-compatible
-  LLM_API_KEY   required for a real run; never printed
+  LLM_PROVIDER  anthropic (default), openai-compatible or claude-cli
+  LLM_API_KEY   required for anthropic and openai-compatible; never printed
   LLM_MODEL     default claude-sonnet-5-5 for anthropic; required for openai-compatible
   LLM_BASE_URL  default https://api.anthropic.com for anthropic; required for openai-compatible
+
+claude-cli needs no key: it pipes the prompt to the locally logged-in Claude Code CLI
+(`claude -p --output-format text`, tools off) and uses its login.
 """
 
 from __future__ import annotations
@@ -20,6 +23,8 @@ import difflib
 import json
 import os
 import re
+import shutil
+import subprocess
 import textwrap
 import urllib.error
 import urllib.request
@@ -174,14 +179,42 @@ def _post(url: str, headers: dict, payload: dict) -> dict:
         raise runner.RunError(f"model request failed: {e.reason}") from None
 
 
+def _claude_cli(model: str, env) -> Provider:
+    """Provider that pipes the prompt to the logged-in `claude` CLI; no key, no network code here."""
+    exe = shutil.which("claude", path=env.get("PATH"))
+    if not exe:
+        raise AIError("LLM_PROVIDER=claude-cli needs the Claude Code CLI, but no `claude` "
+                      "binary is on PATH. Install it and log in once (`claude`), or pick "
+                      "another LLM_PROVIDER.")
+    cmd = [exe, "-p", "--output-format", "text", "--tools", ""]
+    if model:
+        cmd += ["--model", model]
+
+    def call(system: str, prompt: str) -> str:
+        try:
+            done = subprocess.run(cmd + ["--system-prompt", system], input=prompt, text=True,
+                                  capture_output=True, timeout=600, env=dict(env))
+        except subprocess.TimeoutExpired:
+            raise runner.RunError("model request failed: claude CLI timed out") from None
+        if done.returncode != 0:
+            detail = (done.stderr or done.stdout).strip()[-300:]
+            raise runner.RunError(f"model request failed: claude CLI exit {done.returncode}: "
+                                  f"{detail}")
+        return done.stdout
+
+    return call
+
+
 def make_provider(env: dict | None = None) -> tuple[Provider, str]:
     """(call(system, prompt) -> reply text, short description) from LLM_* settings."""
     env = os.environ if env is None else env
+    kind = env.get("LLM_PROVIDER") or "anthropic"
+    model, base = env.get("LLM_MODEL", ""), env.get("LLM_BASE_URL", "").rstrip("/")
+    if kind == "claude-cli":
+        return _claude_cli(model, env), f"claude-cli model {model or '(CLI default)'}"
     key = env.get("LLM_API_KEY", "")
     if not key:
         raise AIError(NO_KEY)
-    kind = env.get("LLM_PROVIDER") or "anthropic"
-    model, base = env.get("LLM_MODEL", ""), env.get("LLM_BASE_URL", "").rstrip("/")
     if kind == "anthropic":
         model, base = model or DEFAULT_MODEL, base or "https://api.anthropic.com"
 
@@ -201,7 +234,8 @@ def make_provider(env: dict | None = None) -> tuple[Provider, str]:
                                                        {"role": "user", "content": prompt}]})
             return data["choices"][0]["message"]["content"] or ""
     else:
-        raise AIError(f"LLM_PROVIDER must be anthropic or openai-compatible, not {kind!r}")
+        raise AIError("LLM_PROVIDER must be anthropic, openai-compatible or claude-cli, "
+                      f"not {kind!r}")
     return call, f"{kind} model {model}"
 
 

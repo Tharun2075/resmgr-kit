@@ -158,3 +158,72 @@ def test_impl_ai_needs_behaviour(tmp_path):
     p.write_text(text)
     with pytest.raises(specmod.SpecError, match="behaviour"):
         specmod.load(p)
+
+
+FAKE_CLAUDE = """#!/bin/sh
+# stand-in for the Claude Code CLI: record argv and stdin, reply with a fixed body
+printf '%s\\n' "$@" > "$(dirname "$0")/argv.txt"
+cat > "$(dirname "$0")/stdin.txt"
+printf '```c\\nreturn EOK;\\n```\\n'
+"""
+
+
+def _fake_claude(tmp_path):
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    exe = bindir / "claude"
+    exe.write_text(FAKE_CLAUDE)
+    exe.chmod(0o755)
+    return bindir
+
+
+def test_claude_cli_pipes_prompt_on_stdin(tmp_path):
+    bindir = _fake_claude(tmp_path)
+    env = {"LLM_PROVIDER": "claude-cli", "LLM_MODEL": "sonnet", "PATH": f"{bindir}:/bin:/usr/bin"}
+    call, desc = ai.make_provider(env)
+    assert desc == "claude-cli model sonnet"
+    reply = call("SYSTEM TEXT", "PROMPT TEXT")
+    assert ai.extract_code(reply).strip() == "return EOK;"
+    argv = (bindir / "argv.txt").read_text().splitlines()
+    assert argv[:3] == ["-p", "--output-format", "text"]
+    assert argv[argv.index("--model") + 1] == "sonnet"
+    assert argv[argv.index("--system-prompt") + 1] == "SYSTEM TEXT"
+    assert (bindir / "stdin.txt").read_text() == "PROMPT TEXT"
+
+
+def test_claude_cli_needs_no_key_and_no_model(tmp_path):
+    bindir = _fake_claude(tmp_path)
+    call, desc = ai.make_provider({"LLM_PROVIDER": "claude-cli", "PATH": f"{bindir}:/bin:/usr/bin"})
+    call("s", "p")
+    assert "--model" not in (bindir / "argv.txt").read_text().splitlines()
+
+
+def test_claude_cli_missing_binary_exits_2(offline, tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "claude-cli")
+    monkeypatch.setenv("PATH", str(tmp_path))
+    assert cli.main(["ai", str(SPEC)]) == 2
+    assert "claude" in capsys.readouterr().err
+
+
+def test_claude_cli_failure_is_reported(tmp_path):
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "claude").write_text("#!/bin/sh\necho 'not logged in' >&2\nexit 1\n")
+    (bindir / "claude").chmod(0o755)
+    call, _ = ai.make_provider({"LLM_PROVIDER": "claude-cli", "PATH": f"{bindir}:/bin:/usr/bin"})
+    with pytest.raises(runner.RunError, match="not logged in"):
+        call("s", "p")
+
+
+def test_claude_cli_loop_runs_with_fake_cli(offline, tmp_path, monkeypatch):
+    monkeypatch.setenv("PATH", str(_fake_claude(tmp_path)) + ":/bin:/usr/bin")
+    monkeypatch.setenv("LLM_PROVIDER", "claude-cli")
+    seen = []
+
+    def checker(spec, out, cfg):
+        seen.append(ai.region_body((out / "vsensor_ai.c").read_text(), "SET_RATE"))
+        return 0, "passed"
+
+    assert ai.run(str(SPEC), str(tmp_path / "out"), checker=checker) == 0
+    assert "return EOK;" in seen[0]
