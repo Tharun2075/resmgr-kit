@@ -44,6 +44,41 @@ Each key can also come from the environment: `RESMGR_KIT_BUILD`, `RESMGR_KIT_TAR
 
 - `examples/vsensor`: `/dev/vsensor0`. A read gives the latest simulated sample; `SET_RATE` clamps to 1..1000 Hz; a pulse timer drives the samples from a thread pool.
 - `examples/estop`: `/dev/estop0`. Writing `1` trips it; a read gives the state; a client arms a pulse with `ARM_NOTIFY` and gets it on the trip.
+- `examples/vsensor_ai`: the same sensor, but `SET_RATE` is `impl: ai` and is written in AI mode (below).
+
+## AI mode
+
+A set or get devctl, or the write handler, can be marked `impl: ai` with a plain-English `behaviour:` line:
+
+```yaml
+devctls:
+  - {name: SET_RATE, code: 1, op: set, field: rate_hz, out_of_range: clamp, impl: ai,
+     behaviour: "clamps to 1..1000 Hz, EINVAL on short payload"}
+```
+
+`resmgr-kit gen` and `resmgr-kit test` then emit a stub (`return ENOSYS;`) between `/* resmgr-kit:ai-begin SET_RATE */` and `/* resmgr-kit:ai-end SET_RATE */`, so the generated tests fail until the region is filled. `resmgr-kit ai <spec.yaml>` fills it:
+
+1. gen, then ask the model for the body of that region only. The prompt holds the spec, the whole generated C file and the QNX 8.0 resource manager rules the body must keep (devctl data sizes, reply iov, locking, errno returns).
+2. Put the body in. A reply with a marker, a preprocessor line or unbalanced braces is refused, and the text outside the markers is checked to be byte-identical.
+3. Build, deploy and run the generated live tests on the target, as `resmgr-kit test` does.
+4. On a compiler error or a failing test, send the output back and try again, up to `--max-iter` rounds (default 3). Each round prints its diff and result.
+
+On green the result is in `build/<name>/` (bodies also in `build/<name>/ai_regions/`); review it before you copy it anywhere. `resmgr-kit test` regenerates the stub, so it does not keep an AI body.
+
+```sh
+export LLM_API_KEY=...                 # never commit it
+resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml --max-iter 3
+resmgr-kit ai examples/vsensor_ai/vsensor_ai.yaml --dry-run   # print the prompt, no network
+```
+
+| Variable | Meaning |
+| --- | --- |
+| `LLM_PROVIDER` | `anthropic` (default) or `openai-compatible` |
+| `LLM_API_KEY` | required; without it `resmgr-kit ai` says so and exits 2 (gen and test do not need it) |
+| `LLM_MODEL` | default `claude-sonnet-5-5` for anthropic; required for openai-compatible |
+| `LLM_BASE_URL` | default `https://api.anthropic.com`; required for openai-compatible (for example a local server's `/v1`) |
+
+AI output is reviewed and tested; no AI code runs without passing on target. No AI part is a safety component: AI mode writes demo handlers for a prototype, and the generated live tests are the only bar it has to clear.
 
 This is a research and demo prototype, not a production product. It is built and tested under the QNX Everywhere Non-Commercial licence. In this project no personal data is collected or stored.
 

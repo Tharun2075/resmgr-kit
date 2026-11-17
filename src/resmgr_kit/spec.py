@@ -32,6 +32,18 @@ def _where(path) -> str:
     return out or "(top level)"
 
 
+def _check_impl(item: dict, where: str) -> None:
+    item.setdefault("impl", "template")
+    if item["impl"] == "ai" and not item.get("behaviour", "").strip():
+        raise SpecError(f"{where}.behaviour: impl 'ai' needs a plain-English behaviour line")
+
+
+def ai_regions(spec: dict) -> list[str]:
+    """Names of the stub regions that `resmgr-kit ai` fills, in file order."""
+    names = ["io_write"] if spec.get("write", {}).get("impl") == "ai" else []
+    return names + [d["name"] for d in spec["devctls"] if d["impl"] == "ai"]
+
+
 def validate(data) -> dict:
     """Check data against the schema and the cross-field rules.
 
@@ -81,6 +93,7 @@ def validate(data) -> dict:
         need(name, "read.fields")
     if "write" in spec:
         spec["write"].setdefault("out_of_range", "reject")
+        _check_impl(spec["write"], "write")
         need(spec["write"]["field"], "write.field")
 
     codes, names = set(), set()
@@ -93,6 +106,9 @@ def validate(data) -> dict:
         names.add(d["name"])
         codes.add(d["code"])
         d.setdefault("out_of_range", "reject")
+        _check_impl(d, where)
+        if d["impl"] == "ai" and d["op"] == "notify":
+            raise SpecError(f"{where}.impl: impl 'ai' is for set and get devctls only")
         if d["op"] in ("set", "get"):
             if "field" not in d:
                 raise SpecError(f"{where}.field: op '{d['op']}' needs a field")

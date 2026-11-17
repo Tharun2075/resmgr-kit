@@ -1,4 +1,4 @@
-"""Command line: resmgr-kit gen | test."""
+"""Command line: resmgr-kit gen | test | ai."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, render, runner, spec as specmod
+from . import __version__, ai, render, runner, spec as specmod
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -23,6 +23,13 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("-o", "--outdir", help="output folder (default: build/<name>)")
     t.add_argument("-c", "--config", help="extra settings file (TOML) read after the user config")
 
+    a = sub.add_parser("ai", help="let a model write the impl: ai regions, tested live on the target")
+    a.add_argument("spec")
+    a.add_argument("-o", "--outdir", help="output folder (default: build/<name>)")
+    a.add_argument("-c", "--config", help="extra settings file (TOML) read after the user config")
+    a.add_argument("--max-iter", type=int, default=3, help="model rounds before giving up (default 3)")
+    a.add_argument("--dry-run", action="store_true", help="print the prompt and stop; no network")
+
     args = ap.parse_args(argv)
     try:
         if args.cmd == "gen":
@@ -31,9 +38,14 @@ def main(argv: list[str] | None = None) -> int:
             for p in render.write(spec, out, Path(args.spec).name):
                 print(p)
             return 0
+        if args.cmd == "ai":
+            return ai.run(args.spec, args.outdir, args.config, args.max_iter, args.dry_run)
         return runner.test(args.spec, args.outdir, args.config)
     except specmod.SpecError as e:
         print(f"resmgr-kit: {args.spec}: {e}", file=sys.stderr)
+        return 2
+    except ai.AIError as e:
+        print(f"resmgr-kit ai: {e}", file=sys.stderr)
         return 2
     except runner.RunError as e:
         print(f"resmgr-kit: {e}", file=sys.stderr)

@@ -112,18 +112,25 @@ class Target:
 def test(spec_path: str, outdir: str | None = None, config: str | None = None) -> int:
     cfg = load_config(config)
     spec = specmod.load(spec_path)
-    name, path = spec["name"], spec["path"]
-    out = Path(outdir or Path("build") / name).resolve()
+    out = Path(outdir or Path("build") / spec["name"]).resolve()
 
     step(f"gen {spec_path} -> {out}")
     render.write(spec, out, Path(spec_path).name)
+    return check(spec, out, cfg)[0]
+
+
+def check(spec: dict, out: Path, cfg: dict) -> tuple[int, str]:
+    """Build the sources already in `out`, deploy them, run the live tests, stop.
+
+    Returns (0 if all tests passed else 1, pytest output). A failed build or
+    deploy raises RunError carrying the tail of the tool output."""
+    name, path = spec["name"], spec["path"]
 
     step("build")
     res = subprocess.run(cfg["build_command"].replace("{dir}", shlex.quote(str(out))), shell=True,
                          capture_output=True, text=True, timeout=600)
     if res.returncode != 0:
-        print(_tail(res.stdout + res.stderr, 40), file=sys.stderr)
-        raise RunError("build failed")
+        raise RunError("build failed:\n" + _tail(res.stdout + res.stderr, 40))
     for binary in (name, name + "_client"):
         if not (out / binary).is_file():
             raise RunError(f"build did not produce {binary}")
@@ -151,19 +158,24 @@ def test(spec_path: str, outdir: str | None = None, config: str | None = None) -
         time.sleep(0.25)
     print(f"{path} is up")
 
+    lines: list[str] = []
     try:
         step("pytest")
         junit = out / "junit.xml"
         env = dict(os.environ, RESMGR_KIT_SSH_ARGS=json.dumps(tgt.ssh),
                    RESMGR_KIT_REMOTE_DIR=rdir)
-        rc = subprocess.call(
+        proc = subprocess.Popen(
             [sys.executable, "-m", "pytest", "-v", "-p", "no:cacheprovider",
              "--rootdir", str(out), f"--junitxml={junit}", str(out / "tests" / f"test_{name}.py")],
-            env=env, cwd=out)
+            env=env, cwd=out, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        for line in proc.stdout:
+            print(line, end="", flush=True)
+            lines.append(line)
+        rc = proc.wait()
         step("target info")
         print(tgt.run("uname -a", check=False).stdout.decode().strip())
         print(f"junit: {junit}")
     finally:
         step("stop")
         tgt.run(f"slay -f {shlex.quote(name)} >/dev/null 2>&1; true", check=False)
-    return 0 if rc == 0 else 1
+    return (0 if rc == 0 else 1), "".join(lines)
