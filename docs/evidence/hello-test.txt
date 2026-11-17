@@ -1,4 +1,4 @@
-== build (qcc in qnx-host)
+== build (qcc in the Linux build host)
 == target
 target: booted, ssh up after 12s
 == deploy
